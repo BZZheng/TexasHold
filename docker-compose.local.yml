@@ -1,0 +1,57 @@
+services:
+  texas-holdem:
+    image: ${APP_IMAGE:-friends-holdem:local}
+    build:
+      context: .
+    environment:
+      NODE_ENV: production
+      PORT: 7790
+      DATA_DIR: /data
+      APP_ORIGINS: ${APP_ORIGINS:-http://127.0.0.1:7790}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ALLOW_NO_ORIGIN: "false"
+      APP_RELEASE: ${APP_RELEASE:-local-compose}
+      INSTANCE_ID: ${INSTANCE_ID:-}
+      LOG_ENABLED: ${LOG_ENABLED:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      LOG_DIR: ${CONTAINER_LOG_DIR:-/data/logs}
+      LOG_STDOUT: ${LOG_STDOUT:-true}
+      LOG_FILE_MAX_BYTES: ${LOG_FILE_MAX_BYTES:-5242880}
+      LOG_ROTATE_INTERVAL_MS: ${LOG_ROTATE_INTERVAL_MS:-900000}
+      LOG_ARCHIVE_MAX_BYTES: ${LOG_ARCHIVE_MAX_BYTES:-52428800}
+      LOG_ARCHIVE_MAX_FILES: ${LOG_ARCHIVE_MAX_FILES:-12}
+      LOG_QUEUE_MAX_ENTRIES: ${LOG_QUEUE_MAX_ENTRIES:-5000}
+      LOG_FLUSH_INTERVAL_MS: ${LOG_FLUSH_INTERVAL_MS:-250}
+      LOG_ARCHIVE_MODE: ${LOG_ARCHIVE_MODE:-disabled}
+      LOG_ARCHIVE_DIR: ${LOG_ARCHIVE_DIR:-}
+      LOG_ARCHIVE_READY_FILE: ${LOG_ARCHIVE_READY_FILE:-}
+      LOG_ARCHIVE_SYNC_INTERVAL_MS: ${LOG_ARCHIVE_SYNC_INTERVAL_MS:-30000}
+      LOG_ARCHIVE_STALE_AFTER_MS: ${LOG_ARCHIVE_STALE_AFTER_MS:-300000}
+    ports:
+      - "127.0.0.1:7790:7790"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid,nodev
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.75
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:7790/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

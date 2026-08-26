@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>嗡嗡文 · 人物控制轨交互稿</title>
+  <link rel="stylesheet" href="../../src/hextech/wengwengwen.css" />
+  <style>
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; background: #17241e; font-family: Epilogue, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    body { min-width: 320px; min-height: 100dvh; margin: 0; padding: 22px; color: #e8dcc7; background: radial-gradient(circle at 50% 30%, #365843, #17241e 58%, #101a15); }
+    button { font: inherit; cursor: pointer; }
+    .prototype-shell { width: min(1060px, 100%); margin: 0 auto; display: grid; gap: 14px; }
+    .prototype-header { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+    .prototype-header div { display: grid; gap: 4px; }
+    .prototype-header small { color: #aebcaf; font-size: 11px; }
+    .prototype-header h1 { margin: 0; color: #e8dcc7; font-size: clamp(20px, 4vw, 34px); }
+    .prototype-header p { max-width: 60ch; margin: 0; color: #b7c3b1; font-size: 12px; line-height: 1.45; }
+    .state-toolbar { display: flex; gap: 6px; overflow-x: auto; padding: 8px; background: rgb(15 29 23 / .72); border: 1px solid #606c38; border-radius: 14px; }
+    .state-toolbar span { align-self: center; flex: none; color: #b7c3b1; font-size: 10px; font-weight: 800; }
+    .state-toolbar button { min-height: 40px; flex: none; padding: 0 12px; color: #e8dcc7; background: #314238; border: 1px solid #606c38; border-radius: 10px; }
+    .state-toolbar button.active { color: #382c25; background: #d4b895; border-color: #c08e3a; }
+    .table-safety-demo { min-height: 260px; display: grid; grid-template-rows: 1fr 84px; gap: 8px; }
+    .table-zone { position: relative; display: grid; place-items: center; overflow: hidden; background: radial-gradient(ellipse at center, #47765a, #2e5943 56%, #1e3c2d); border: 10px solid #574737; border-radius: 48%; box-shadow: inset 0 0 0 2px #79866f, inset 0 0 34px #13231a; }
+    .community-demo { display: flex; gap: 8px; }
+    .community-demo span { width: 42px; height: 58px; display: grid; place-items: center; color: #332b26; background: #e8dcc7; border-radius: 8px; box-shadow: 0 6px 12px rgb(0 0 0 / .28); font-weight: 800; }
+    .hand-rail-demo { display: grid; place-items: center; color: #b7c3b1; background: rgb(17 29 24 / .88); border: 1px solid #606c38; border-radius: 14px; font-size: 11px; }
+    .hand-rail-demo strong { color: #e8dcc7; }
+    .prototype-note { margin: 0; color: #aebcaf; font-size: 10px; text-align: center; }
+    .moon-token { width: 19px; height: 19px; display: block; border-radius: 50%; background: #d9bd79; box-shadow: 0 0 7px rgb(192 142 58 / .42); }
+    .moon-token::after { width: 15px; height: 15px; display: block; margin: -2px 0 0 7px; content: ""; background: #24332b; border-radius: 50%; }
+    .moon-token.empty { opacity: .25; }
+    @media (max-width: 39.99rem) {
+      body { padding: 10px; }
+      .prototype-header { align-items: start; flex-direction: column; }
+      .table-safety-demo { min-height: 220px; }
+      .table-zone { border-width: 7px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype-shell">
+    <header class="prototype-header">
+      <div>
+        <small>可开发交互稿 · 固定三轨</small>
+        <h1>嗡嗡文 · 月刃行者</h1>
+        <p>切换下面的故事状态，验证按钮槽位、帮助、私密牌面与觉醒反馈。人物控件始终位于牌桌和手牌轨道之后。</p>
+      </div>
+    </header>
+
+    <nav class="state-toolbar" aria-label="交互稿状态">
+      <span>示例状态</span>
+      <button type="button" data-story="disabled">不可发动</button>
+      <button type="button" data-story="ready" class="active">可发动</button>
+      <button type="button" data-story="confirm">二次确认</button>
+      <button type="button" data-story="result">私密结果</button>
+      <button type="button" data-story="awaken">觉醒</button>
+    </nav>
+
+    <section class="table-safety-demo" aria-label="牌面安全区示意">
+      <div class="table-zone">
+        <div class="community-demo" aria-label="示例公共牌">
+          <span>A♥</span><span>10♣</span><span>7♦</span>
+        </div>
+      </div>
+      <div class="hand-rail-demo"><span>自己的手牌轨道 · <strong>不会被人物控件覆盖</strong></span></div>
+    </section>
+
+    <section class="wengwengwen-control" aria-labelledby="character-title" data-control-rail="character">
+      <header class="wengwengwen-identity">
+        <img id="portrait" src="assets/parallel-wengwengwen/characters/wengwengwen-normal.png" alt="" />
+        <span>
+          <small>月刃行者</small>
+          <strong id="character-title">嗡嗡文</strong>
+          <em id="voice-line">月亮升起来，破绽也就亮了。</em>
+        </span>
+        <button type="button" class="wengwengwen-help-trigger" id="help-trigger" aria-expanded="false">说明</button>
+      </header>
+
+      <div class="wengwengwen-resource" aria-label="月痕 2/3">
+        <span>月痕</span>
+        <div aria-hidden="true"><i class="moon-token"></i><i class="moon-token"></i><i class="moon-token empty"></i></div>
+        <strong id="resource-copy">2/3</strong>
+      </div>
+
+      <div class="wengwengwen-workspace" id="workspace"></div>
+      <div class="wengwengwen-actions" id="actions"></div>
+
+      <div class="wengwengwen-growth" aria-label="觉醒进度">
+        <span id="awaken-label">觉醒进度</span>
+        <small>不同手牌追刃 2/5</small>
+        <small>转牌圈追刃 0/1</small>
+        <small>摊牌击败进攻者 0/1</small>
+      </div>
+    </section>
+    <p class="prototype-note">示例牌面只用于展示私密结果的版式；生产牌面必须来自服务端本人视图。</p>
+  </main>
+
+  <script>
+    const control = document.querySelector(".wengwengwen-control");
+    const workspace = document.querySelector("#workspace");
+    const actions = document.querySelector("#actions");
+    const portrait = document.querySelector("#portrait");
+    const voice = document.querySelector("#voice-line");
+    const awakenLabel = document.querySelector("#awaken-label");
+    const resourceCopy = document.querySelector("#resource-copy");
+    const helpTrigger = document.querySelector("#help-trigger");
+    let story = "ready";
+
+    function button(label, className = "", disabled = false) {
+      return `<button type="button" class="${className}" ${disabled ? "disabled" : ""}>${label}</button>`;
+    }
+
+    function render(nextStory = story) {
+      story = nextStory;
+      document.querySelectorAll("[data-story]").forEach((item) => item.classList.toggle("active", item.dataset.story === story));
+      control.classList.toggle("is-awakened", story === "awaken");
+      portrait.src = story === "awaken"
+        ? "assets/parallel-wengwengwen/characters/wengwengwen-awaken.png"
+        : "assets/parallel-wengwengwen/characters/wengwengwen-normal.png";
+      voice.textContent = story === "awaken"
+        ? "满月已至，双刃归巢。"
+        : story === "result"
+          ? "月痕锁定——别眨眼。"
+          : "月亮升起来，破绽也就亮了。";
+      awakenLabel.textContent = story === "awaken" ? "满月双刃已觉醒" : "觉醒进度";
+      resourceCopy.textContent = story === "result" ? "0/3" : "2/3";
+      helpTrigger.setAttribute("aria-expanded", "false");
+
+      if (story === "disabled") {
+        workspace.innerHTML = `<div class="wengwengwen-ready"><span></span><span><strong>等待主动进攻者</strong><small>本街尚无符合条件的主动进攻者</small></span></div>`;
+        actions.innerHTML = button("发动月蚀追猎", "primary", true) + `<span></span>`;
+      } else if (story === "confirm") {
+        workspace.innerHTML = `<div class="wengwengwen-confirm"><span></span><span><strong>追猎 许哥</strong><small>消耗 2 月痕，随机查看一张展示底牌。发动后不可撤销。</small></span></div>`;
+        actions.innerHTML = button("确认发动", "primary") + button("取消");
+        actions.children[0].addEventListener("click", () => render("result"));
+        actions.children[1].addEventListener("click", () => render("ready"));
+      } else if (story === "result") {
+        workspace.innerHTML = `<div class="wengwengwen-reveal" role="status"><span class="wengwengwen-reveal-card dark"><b>A</b><i>♠</i></span><span><small>许哥的一张展示底牌</small><strong>只对你可见 · 保留到本街结束</strong><em>伪装技能可能使展示结果失真</em></span></div>`;
+        actions.innerHTML = button("本手已发动", "primary", true) + `<span></span>`;
+      } else {
+        workspace.innerHTML = `<div class="wengwengwen-ready"><span></span><span><strong>目标：许哥</strong><small>当前可发动月蚀追猎</small></span></div>`;
+        actions.innerHTML = button("发动月蚀追猎", "primary") + `<span></span>`;
+        actions.children[0].addEventListener("click", () => render("confirm"));
+      }
+    }
+
+    document.querySelectorAll("[data-story]").forEach((item) => item.addEventListener("click", () => render(item.dataset.story)));
+    helpTrigger.addEventListener("click", () => {
+      const open = helpTrigger.getAttribute("aria-expanded") !== "true";
+      helpTrigger.setAttribute("aria-expanded", String(open));
+      if (!open) return render(story);
+      workspace.innerHTML = `<div class="wengwengwen-help"><strong>月蚀追猎</strong><p>面对本街最后一名主动进攻者时，消耗 2 月痕，服务端随机展示其一张底牌。</p><small>伪装技能可能使牌面失真；发动后不可撤销，也不会改变下注金额或牌堆。</small></div>`;
+    });
+    render();
+  </script>
+</body>
+</html>

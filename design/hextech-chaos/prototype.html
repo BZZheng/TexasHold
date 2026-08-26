@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>海克斯大乱德 UI v0</title>
+  <link rel="stylesheet" href="./prototype.css" />
+</head>
+<body>
+  <div class="prototype-shell">
+    <header class="prototype-tools" aria-label="原型控制">
+      <div>
+        <strong>海克斯大乱德 UI v0</strong>
+        <span>开发交互稿</span>
+      </div>
+      <label>
+        <span>状态</span>
+        <select id="screenSelect">
+          <option value="character">人物选择</option>
+          <option value="draft">技能三选一</option>
+          <option value="play">牌局操作</option>
+          <option value="target">选择目标</option>
+          <option value="spectator">观战手牌</option>
+          <option value="awaken">人物觉醒</option>
+        </select>
+      </label>
+      <div class="segmented" aria-label="预览尺寸">
+        <button type="button" data-device="desktop" class="active">桌面</button>
+        <button type="button" data-device="mobile" data-frame-width="414" data-frame-height="844">414 px</button>
+        <button type="button" data-device="mobile" data-frame-width="375" data-frame-height="812">375 px</button>
+        <button type="button" data-device="compact" data-frame-width="320" data-frame-height="760">320 px</button>
+      </div>
+      <button type="button" class="tool-button" id="toggleZones">显示安全区</button>
+    </header>
+
+    <main class="preview-stage">
+      <div class="app-frame" data-device="desktop" data-screen="character" data-target-kind="player">
+        <header class="game-header">
+          <div class="brand-lockup">
+            <span class="brand-mark">♠</span>
+            <div>
+              <strong>海克斯大乱德</strong>
+              <small>房间 H3X7</small>
+            </div>
+          </div>
+          <div class="match-status">
+            <span>第 3/15 手</span>
+            <strong>目标 9,000</strong>
+            <span>盲注 20/40</span>
+          </div>
+          <button class="header-button" type="button">玩家与规则</button>
+        </header>
+
+        <div class="event-lane" aria-live="polite">
+          <span class="event-copy" data-event="character">选择人物后才能准备</span>
+          <span class="event-copy" data-event="draft">底牌已发出，选择本手装备</span>
+          <span class="event-copy" data-event="play">轮到你行动，还剩 60 秒</span>
+          <span class="event-copy" data-event="target">恐吓玩家：请选择一名有效目标</span>
+          <span class="event-copy" data-event="spectator">观战视角：正在查看粉香的手牌</span>
+          <span class="event-copy" data-event="awaken">粉香觉醒：小筹码奇迹已解锁</span>
+        </div>
+
+        <div class="game-body">
+          <section class="table-column" aria-label="牌桌与操作区">
+            <div class="table-zone zone-contract" data-zone="公共牌安全区">
+              <div class="poker-table">
+                <div class="felt-ring"></div>
+                <div class="pot-copy"><span>底池</span><strong>1,240</strong></div>
+                <div class="community-cards" aria-label="公共牌">
+                  <span class="playing-card red"><b>A</b><i>♥</i></span>
+                  <span class="playing-card"><b>10</b><i>♣</i></span>
+                  <span class="playing-card red"><b>7</b><i>♦</i></span>
+                  <span class="playing-card placeholder"></span>
+                  <span class="playing-card placeholder"></span>
+                </div>
+                <div class="street-copy">翻牌</div>
+              </div>
+
+              <button class="seat seat-top" type="button" data-valid-target="true">
+                <span class="mini-avatar avatar-zige"><img src="./assets/zige-v0.png" alt="" /></span>
+                <span><strong>资哥</strong><small>2,380</small></span>
+                <em>银行家</em>
+              </button>
+              <button class="seat seat-right-top" type="button" data-valid-target="true">
+                <span class="mini-avatar avatar-initial">鸭</span>
+                <span><strong>鸭哥</strong><small>1,760</small></span>
+                <em>鸭毛 1</em>
+              </button>
+              <button class="seat seat-right" type="button" data-valid-target="true">
+                <span class="mini-avatar avatar-initial">毛</span>
+                <span><strong>毛哥</strong><small>2,120</small></span>
+                <em>旺柴 1</em>
+              </button>
+              <button class="seat seat-right-bottom" type="button" data-valid-target="true">
+                <span class="mini-avatar avatar-initial">许</span>
+                <span><strong>许哥</strong><small>980</small></span>
+                <em>炭火 2</em>
+              </button>
+              <button class="seat seat-bottom" type="button" data-valid-target="false">
+                <span class="mini-avatar avatar-fenxiang"><img src="./assets/fenxiang-v0.png" alt="" /></span>
+                <span><strong>你</strong><small>620</small></span>
+                <em>胆识 3/3</em>
+              </button>
+              <button class="seat seat-left-bottom" type="button" data-valid-target="true">
+                <span class="mini-avatar avatar-initial">奇</span>
+                <span><strong>奇玩</strong><small>1,420</small></span>
+                <em>盲盒就绪</em>
+              </button>
+              <button class="seat seat-left" type="button" data-valid-target="true">
+                <span class="mini-avatar avatar-jiansheng"><img src="./assets/jiansheng-v0.png" alt="" /></span>
+                <span><strong>剑圣哥</strong><small>2,040</small></span>
+                <em>剑意 2</em>
+              </button>
+
+              <div class="waiting-copy" data-only-screen="character">
+                <small>人物名册</small>
+                <strong>选择本场人物</strong>
+                <span>人物不可重复，准备后锁定</span>
+              </div>
+            </div>
+
+            <div class="hand-rail zone-contract" data-zone="手牌轨道">
+              <div class="hand-context">
+                <span class="portrait-chip"><img src="./assets/fenxiang-v0.png" alt="粉香示例立绘" /></span>
+                <div>
+                  <small class="hand-mode own-mode">你的手牌</small>
+                  <small class="hand-mode spectator-mode">正在观看粉香</small>
+                  <strong class="own-mode">粉香</strong>
+                  <strong class="spectator-mode">公开观战手牌</strong>
+                  <span>胆识 3/3，低于平均筹码 31%</span>
+                </div>
+              </div>
+              <div class="hole-cards" aria-label="当前查看的手牌">
+                <button class="playing-card large red" type="button"><b>Q</b><i>♥</i></button>
+                <button class="playing-card large" type="button"><b>8</b><i>♣</i></button>
+              </div>
+              <div class="hand-summary">
+                <small>当前牌型</small>
+                <strong>Q 高</strong>
+                <span>距目标还差 8,380</span>
+              </div>
+            </div>
+
+            <div class="control-rail zone-contract" data-zone="操作与技能轨道">
+              <section class="character-picker" data-panel="character">
+                <div class="picker-copy">
+                  <small>可选人物 5/7</small>
+                  <strong id="characterName">粉香</strong>
+                  <p id="characterDetail">残血逆袭。积攒胆识，低筹码赢池时获得更高奖励。</p>
+                  <button type="button" class="primary-action" id="lockCharacter">选择粉香</button>
+                </div>
+                <div class="character-carousel" role="listbox" aria-label="人物选择">
+                  <button type="button" class="character-card selected" data-character="粉香" data-detail="残血逆袭。积攒胆识，低筹码赢池时获得更高奖励。" data-image="fenxiang-v0.png">
+                    <img src="./assets/fenxiang-v0.png" alt="粉香" /><span>粉香</span><small>残血逆袭</small>
+                  </button>
+                  <button type="button" class="character-card" data-character="剑圣哥" data-detail="下注压制。积攒剑意，限制对手整条下注街。" data-image="jiansheng-v0.png">
+                    <img src="./assets/jiansheng-v0.png" alt="剑圣哥" /><span>剑圣哥</span><small>下注压制</small>
+                  </button>
+                  <button type="button" class="character-card" data-character="资哥" data-detail="银行经营。定期结息，向其他玩家发放短期贷款。" data-image="zige-v0.png">
+                    <img src="./assets/zige-v0.png" alt="资哥" /><span>资哥</span><small>银行经营</small>
+                  </button>
+                  <button type="button" class="character-card unavailable" disabled>
+                    <span class="locked-portrait">鸭</span><span>鸭哥</span><small>已被玩家选择</small>
+                  </button>
+                </div>
+              </section>
+
+              <section class="skill-draft" data-panel="draft">
+                <div class="draft-meta">
+                  <div><small>本手装备</small><strong>三选一</strong></div>
+                  <span class="draft-timer">60</span>
+                  <button type="button" id="rerollSkills">刷新 1</button>
+                </div>
+                <div class="skill-cards" role="listbox" aria-label="技能三选一">
+                  <button type="button" class="skill-card coral selected" data-skill="透视眼">
+                    <span class="skill-art">眼</span><small>情报</small><strong>透视眼</strong><p>60% 查看一名玩家的底牌。</p><em>作弊</em>
+                  </button>
+                  <button type="button" class="skill-card gold" data-skill="我是赌圣">
+                    <span class="skill-art">赌</span><small>金色海克斯</small><strong>我是赌圣</strong><p>指定底牌点数，概率完成变牌。</p><em>作弊</em>
+                  </button>
+                  <button type="button" class="skill-card sage" data-skill="技能护盾">
+                    <span class="skill-art">盾</span><small>防御</small><strong>技能护盾</strong><p>抵挡第一个指向你的装备技能。</p><em>合法</em>
+                  </button>
+                </div>
+                <button type="button" class="primary-action equip-action" id="equipSkill">装备透视眼</button>
+              </section>
+
+              <section class="action-console" data-panel="play">
+                <div class="character-hud">
+                  <span class="hud-portrait"><img src="./assets/fenxiang-v0.png" alt="" /></span>
+                  <div><small>粉香</small><strong>胆识 3/3</strong><span>以小搏大已就绪</span></div>
+                  <button type="button" class="character-skill">以小搏大</button>
+                </div>
+                <div class="poker-actions">
+                  <button type="button">弃牌</button><button type="button">过牌</button><button type="button" class="call">跟注 120</button><button type="button">加注</button>
+                </div>
+                <button type="button" class="equipped-skill" id="useSkill"><span>眼</span><div><small>本手装备</small><strong>透视眼</strong></div><em id="skillState">可发动</em></button>
+              </section>
+
+              <section class="target-console" data-panel="target">
+                <div><small>技能发动步骤</small><strong id="targetSkillName">透视眼</strong><p id="targetSkillHelp">点击牌桌上带有金色指针的玩家。公共牌和手牌保持可见。</p></div>
+                <button type="button" class="secondary-action" id="cancelTarget">取消选择</button>
+              </section>
+
+              <section class="spectator-console" data-panel="spectator">
+                <div><small>本局观战</small><strong>粉香的手牌保持在独立轨道</strong><p>切换玩家只更新上方手牌轨道，不会用浮层覆盖公共牌。</p></div>
+                <div class="spectator-actions"><button type="button">上一位</button><button type="button">下一位</button><button type="button">返回全桌视角</button></div>
+              </section>
+
+              <section class="awaken-console" data-panel="awaken">
+                <span class="awaken-portrait"><img src="./assets/fenxiang-v0.png" alt="粉香觉醒" /></span>
+                <div><small>人物觉醒</small><strong>小筹码奇迹</strong><p>筹码低于平均值30%时，2点胆识即可发动。最低档奖励提高到40%。</p></div>
+                <button type="button" class="primary-action">知道了</button>
+              </section>
+            </div>
+          </section>
+
+          <aside class="game-sidebar">
+            <nav><button class="active">玩家</button><button>技能</button><button>记录</button></nav>
+            <div class="sidebar-goal">
+              <small>动态胜利目标</small><strong>9,000</strong><span>当前最高 2,380</span>
+            </div>
+            <div class="roster">
+              <div><span class="tiny-face"><img src="./assets/zige-v0.png" alt="" /></span><p><strong>资哥</strong><small>净资产 2,880</small></p><em>总行长 80%</em></div>
+              <div><span class="tiny-face"><img src="./assets/jiansheng-v0.png" alt="" /></span><p><strong>剑圣哥</strong><small>筹码 2,040</small></p><em>剑意 2</em></div>
+              <div><span class="tiny-face"><img src="./assets/fenxiang-v0.png" alt="" /></span><p><strong>你 · 粉香</strong><small>筹码 620</small></p><em>胆识 3</em></div>
+            </div>
+            <div class="sidebar-note"><strong>牌面可见性</strong><p>技能操作只发生在下方操作轨道。牌桌中央和手牌轨道不会被覆盖。</p></div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="./prototype.js"></script>
+</body>
+</html>

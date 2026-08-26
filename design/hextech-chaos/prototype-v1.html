@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>海克斯大乱德 UI v1</title>
+  <link rel="stylesheet" href="./prototype-v1.css" />
+</head>
+<body>
+  <div class="prototype-shell">
+    <header class="prototype-tools" aria-label="原型控制台">
+      <div class="prototype-title">
+        <strong>海克斯大乱德 UI v1</strong>
+        <span>可点击开发交互稿 · 牌面三轨安全布局</span>
+      </div>
+      <label class="tool-field">
+        <span>场景</span>
+        <select id="screenSelect" aria-label="切换原型场景">
+          <optgroup label="开房与准备">
+            <option value="create-room">创建海克斯房</option>
+            <option value="character-select">选择人物</option>
+            <option value="character-locked">人物已锁定</option>
+          </optgroup>
+          <optgroup label="每手技能">
+            <option value="draft">技能三选一</option>
+            <option value="draft-loading">刷新加载</option>
+            <option value="draft-error">刷新失败</option>
+            <option value="draft-timeout">超时自动装备</option>
+            <option value="skill-library">30 技能图鉴</option>
+          </optgroup>
+          <optgroup label="牌局操作">
+            <option value="play">正常操作</option>
+            <option value="target">选择技能目标</option>
+            <option value="confirm">不可逆技能确认</option>
+            <option value="skill-cooldown">技能冷却 / 禁用</option>
+            <option value="loan-offer">资哥发起贷款</option>
+            <option value="loan-response">借款人接受 / 拒绝</option>
+            <option value="loan-ledger">贷款账本</option>
+            <option value="mao-challenge">质疑毛哥</option>
+            <option value="ya-river-choice">鸭哥随机换河</option>
+            <option value="qiwan-card-swap">奇玩牌堆顶换牌</option>
+            <option value="catch-result">抓老千结算</option>
+            <option value="catch-miss">抓老千误抓</option>
+            <option value="awaken">人物觉醒</option>
+          </optgroup>
+          <optgroup label="观战与结算">
+            <option value="spectator">授权观战手牌</option>
+            <option value="spectator-hidden">观战无权限 / 失败</option>
+            <option value="spectator-failed">观战切换网络失败</option>
+            <option value="activity-log">移动端牌局记录</option>
+            <option value="hand-result">单手结算</option>
+            <option value="rebuy">补筹确认</option>
+            <option value="match-end">整场终局</option>
+            <option value="match-end-cap">15 手兜底终局</option>
+          </optgroup>
+        </select>
+      </label>
+      <div class="segmented" aria-label="预览尺寸">
+        <button type="button" data-device="desktop" class="active" aria-pressed="true">1440</button>
+        <button type="button" data-device="tablet" data-frame-width="768" data-frame-height="900" aria-pressed="false">768</button>
+        <button type="button" data-device="mobile" data-frame-width="414" data-frame-height="844" aria-pressed="false">414</button>
+        <button type="button" data-device="mobile" data-frame-width="375" data-frame-height="812" aria-pressed="false">375</button>
+        <button type="button" data-device="compact" data-frame-width="320" data-frame-height="760" aria-pressed="false">320</button>
+      </div>
+      <button type="button" class="tool-button" id="toggleZones" aria-pressed="false">显示安全区</button>
+      <button type="button" class="tool-button" id="resetState">重置场景</button>
+    </header>
+
+    <main class="preview-stage">
+      <div class="app-frame" data-device="desktop" data-screen="create-room" data-table-mode="lobby" data-target-kind="player">
+        <header class="game-header">
+          <div class="brand-lockup">
+            <span class="brand-mark" aria-hidden="true">♠</span>
+            <div>
+              <strong>海克斯大乱德</strong>
+              <small id="roomCode">新房间 · 私人俱乐部</small>
+            </div>
+          </div>
+          <div class="match-status">
+            <span id="handStatus">准备阶段</span>
+            <strong id="goalStatus">6 人目标 9,600</strong>
+            <span id="blindStatus">预计 30 分钟</span>
+          </div>
+          <button class="header-button" type="button" id="openRulebook">技能图鉴</button>
+        </header>
+
+        <div class="event-lane" aria-live="polite">
+          <span class="event-icon" aria-hidden="true">✦</span>
+          <strong id="eventTitle">创建房间</strong>
+          <span id="eventCopy">人数决定胜利目标，开局后不随掉线人数变化</span>
+          <button type="button" id="eventAction" hidden>查看</button>
+        </div>
+
+        <div class="game-body">
+          <section class="table-column" aria-label="牌桌主视图">
+            <div class="table-zone zone-contract" data-zone="A · 公共牌安全区" id="tableZone">
+              <div class="poker-table" aria-label="牌桌">
+                <div class="felt-ring"></div>
+                <div class="table-watermark">HEX</div>
+                <div class="pot-copy"><span>底池</span><strong id="potValue">1,240</strong></div>
+                <div class="community-cards" aria-label="公共牌" id="communityCards">
+                  <span class="playing-card red"><b>A</b><i>♥</i></span>
+                  <span class="playing-card"><b>10</b><i>♣</i></span>
+                  <span class="playing-card red"><b>7</b><i>♦</i></span>
+                  <span class="playing-card placeholder" aria-label="未发出的转牌"></span>
+                  <span class="playing-card placeholder" aria-label="未发出的河牌"></span>
+                </div>
+                <div class="street-copy" id="streetCopy">翻牌 · 还剩 60 秒</div>
+                <div class="lobby-table-copy" id="lobbyTableCopy">
+                  <small>HEXTECH CHAOS</small>
+                  <strong>海克斯房间</strong>
+                  <span>先选人物，每手再从 3 个公共技能中装备 1 个</span>
+                  <div class="goal-pills" aria-label="房间核心规则">
+                    <em>初始 2,000</em><em>最多补筹 3 次</em><em>15 手封顶</em>
+                  </div>
+                </div>
+              </div>
+
+              <button class="seat seat-top" type="button" data-user-id="zige" data-valid-target="true">
+                <span class="mini-avatar"><img data-character-image="zige" src="./assets/v1/characters/zige-normal.png" alt="" /></span>
+                <span><strong>资哥</strong><small>2,380</small></span><em>账本 1 · 利息待结</em>
+              </button>
+              <button class="seat seat-right-top" type="button" data-user-id="ya" data-valid-target="true">
+                <span class="mini-avatar"><img data-character-image="ya" src="./assets/v1/characters/ya-normal.png" alt="" /></span>
+                <span><strong>鸭哥</strong><small>1,760</small></span><em>鸭毛 2/2 · 已全押</em>
+              </button>
+              <button class="seat seat-right" type="button" data-user-id="mao" data-valid-target="true">
+                <span class="mini-avatar"><img data-character-image="mao" src="./assets/v1/characters/mao-normal.png" alt="" /></span>
+                <span><strong>毛哥</strong><small>2,120</small></span><em>旺柴 1 · 宣称 ♥</em>
+              </button>
+              <button class="seat seat-right-bottom" type="button" data-user-id="xu" data-valid-target="true">
+                <span class="mini-avatar"><img data-character-image="xu" src="./assets/v1/characters/xu-normal.png" alt="" /></span>
+                <span><strong>许哥</strong><small>980</small></span><em>炭火 4/4 · 待行动</em>
+              </button>
+              <button class="seat seat-bottom self-seat" type="button" data-user-id="self" data-valid-target="false">
+                <span class="mini-avatar"><img data-self-image src="./assets/v1/characters/fenxiang-normal.png" alt="" /></span>
+                <span><strong>你 · 粉香</strong><small>620</small></span><em>胆识 3/3 · 已行动</em>
+              </button>
+              <button class="seat seat-left-bottom" type="button" data-user-id="qiwan" data-valid-target="true">
+                <span class="mini-avatar"><img data-character-image="qiwan" src="./assets/v1/characters/qiwan-normal.png" alt="" /></span>
+                <span><strong>奇玩</strong><small>1,420</small></span><em>奇想 2/2</em>
+              </button>
+              <button class="seat seat-left" type="button" data-user-id="jiansheng" data-valid-target="true">
+                <span class="mini-avatar"><img data-character-image="jiansheng" src="./assets/v1/characters/jiansheng-normal.png" alt="" /></span>
+                <span><strong>剑圣哥</strong><small>2,040</small></span><em>剑意 2/3</em>
+              </button>
+
+              <div class="target-hint" id="targetHint" hidden>请选择金色描边的玩家</div>
+            </div>
+
+            <div class="hand-rail zone-contract" data-zone="B · 自己 / 授权观战手牌轨道" id="handRail">
+              <div class="hand-context">
+                <span class="portrait-chip"><img data-self-image src="./assets/v1/characters/fenxiang-normal.png" alt="粉香" /></span>
+                <div>
+                  <small id="handEyebrow">你的手牌</small>
+                  <strong id="handOwner">粉香 · 以小搏大就绪</strong>
+                  <span id="handDescription">当前筹码为桌均 40%，已满足低筹码进度门槛</span>
+                </div>
+              </div>
+              <div class="hole-cards" aria-label="当前允许查看的手牌" id="holeCards">
+                <button class="playing-card large red" type="button" data-card="Q♥"><b>Q</b><i>♥</i></button>
+                <button class="playing-card large" type="button" data-card="8♣"><b>8</b><i>♣</i></button>
+              </div>
+              <div class="hand-summary">
+                <small id="handSummaryLabel">当前牌型</small>
+                <strong id="handSummaryValue">A 高</strong>
+                <span id="handSummaryMeta">距目标还差 8,980</span>
+              </div>
+              <div class="hand-placeholder" id="handPlaceholder" hidden>
+                <span class="card-back"></span><span class="card-back"></span>
+                <p><strong>底牌尚未发出</strong><small>进入每手技能阶段后，这里始终保留你的牌</small></p>
+              </div>
+            </div>
+
+            <div class="control-rail zone-contract" data-zone="C · 操作 / 技能轨道" id="controlRail">
+              <div id="controlContent"></div>
+            </div>
+          </section>
+
+          <aside class="game-sidebar" aria-label="牌局侧栏">
+            <nav aria-label="侧栏标签">
+              <button type="button" class="active" data-side-tab="players" aria-pressed="true">玩家</button>
+              <button type="button" data-side-tab="skills" aria-pressed="false">装备</button>
+              <button type="button" data-side-tab="log" aria-pressed="false">记录</button>
+            </nav>
+            <div id="sidebarContent"></div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="./prototype-v1.js"></script>
+</body>
+</html>

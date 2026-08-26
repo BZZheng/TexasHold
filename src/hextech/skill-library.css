@@ -1,0 +1,565 @@
+.hextech-library-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-modal) + 20);
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 2.5vw, 28px);
+  background: rgb(45 42 34 / 0.78);
+  backdrop-filter: blur(8px);
+  animation: hextech-library-backdrop-in 300ms ease both;
+}
+
+.hextech-library-dialog {
+  --library-sand: #e8dcc7;
+  --library-oat: #d4b895;
+  --library-sage: #8b9d83;
+  --library-clay: #b08b6e;
+  --library-terracotta: #c66b3d;
+  --library-ochre: #c08e3a;
+  --library-moss: #606c38;
+  --library-ink: #2d2a22;
+  --library-muted: #665f50;
+  position: relative;
+  isolation: isolate;
+  width: min(1120px, 100%);
+  height: min(920px, 92dvh);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  overflow: hidden;
+  color: var(--library-ink);
+  background:
+    radial-gradient(circle at 95% 0%, rgb(192 142 58 / 0.2), transparent 30%),
+    var(--library-sand);
+  border: 1px solid rgb(96 108 56 / 0.5);
+  border-radius: 28px;
+  box-shadow: 0 28px 80px rgb(45 42 34 / 0.44);
+  font-family: "Epilogue", sans-serif;
+  animation: hextech-library-dialog-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.hextech-library-dialog::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
+}
+
+.hextech-library-sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+.hextech-library-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  padding: 20px 22px 17px;
+  border-block-end: 1px solid rgb(96 108 56 / 0.28);
+}
+
+.hextech-library-book {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: var(--library-sand);
+  background: var(--library-moss);
+  border: 1px solid rgb(45 42 34 / 0.2);
+  border-radius: 17px 17px 17px 8px;
+  box-shadow: 0 6px 0 rgb(45 42 34 / 0.12);
+}
+
+.hextech-library-header h2 {
+  margin: 2px 0 4px;
+  color: var(--library-ink);
+  font: 700 clamp(22px, 3vw, 34px)/1.05 "Epilogue", sans-serif;
+  letter-spacing: -0.045em;
+}
+
+.hextech-library-header p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--library-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.hextech-library-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--library-moss);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.hextech-library-close,
+.hextech-library-search button,
+.hextech-library-filter button,
+.hextech-library-empty button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid rgb(96 108 56 / 0.35);
+  font: inherit;
+}
+
+.hextech-library-close {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--library-ink);
+  background: rgb(212 184 149 / 0.68);
+  border-radius: 15px;
+}
+
+.hextech-library-toolbar {
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  background: rgb(212 184 149 / 0.38);
+  border-block-end: 1px solid rgb(96 108 56 / 0.2);
+}
+
+.hextech-library-search {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding-inline-start: 13px;
+  color: var(--library-muted);
+  background: rgb(232 220 199 / 0.9);
+  border: 1px solid rgb(96 108 56 / 0.35);
+  border-radius: 16px;
+}
+
+.hextech-library-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0;
+  color: var(--library-ink);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 12px;
+}
+
+.hextech-library-search input::placeholder { color: #796f5d; }
+
+.hextech-library-search:focus-within,
+.hextech-library-rarity:focus-within {
+  border-color: var(--library-ochre);
+  box-shadow: 0 0 0 3px rgb(192 142 58 / 0.28);
+}
+
+.hextech-library-search button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--library-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+}
+
+.hextech-library-filter {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: rgb(176 139 110 / 0.24);
+  border: 1px solid rgb(96 108 56 / 0.28);
+  border-radius: 17px;
+}
+
+.hextech-library-filter button {
+  min-width: 58px;
+  padding: 0 11px;
+  color: var(--library-muted);
+  background: transparent;
+  border-color: transparent;
+  border-radius: 13px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hextech-library-filter button.active {
+  color: var(--library-sand);
+  background: var(--library-moss);
+  box-shadow: 0 3px 8px rgb(45 42 34 / 0.16);
+}
+
+.hextech-library-rarity {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline-start: 12px;
+  color: var(--library-muted);
+  background: rgb(232 220 199 / 0.9);
+  border: 1px solid rgb(96 108 56 / 0.35);
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hextech-library-rarity select {
+  min-height: 42px;
+  padding: 0 28px 0 4px;
+  color: var(--library-ink);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hextech-library-results-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 22px;
+  color: var(--library-muted);
+  border-block-end: 1px solid rgb(96 108 56 / 0.22);
+  font-size: 10px;
+}
+
+.hextech-library-results-heading span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--library-moss);
+  font-weight: 700;
+}
+
+.hextech-library-results-heading small { font-size: inherit; }
+
+.hextech-library-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 16px 22px 24px;
+}
+
+.hextech-library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.hextech-library-card {
+  min-width: 0;
+  overflow: hidden;
+  background: rgb(212 184 149 / 0.48);
+  border: 1px solid rgb(96 108 56 / 0.34);
+  border-radius: 22px;
+  box-shadow: 0 8px 18px rgb(45 42 34 / 0.09);
+}
+
+.hextech-library-card.rarity-稀有 { border-color: rgb(139 157 131 / 0.9); }
+.hextech-library-card.rarity-金色 { border-color: rgb(192 142 58 / 0.9); }
+
+.hextech-library-card-heading {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 8px;
+}
+
+.hextech-library-art {
+  position: relative;
+  width: 74px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--library-sage);
+  border: 2px solid rgb(232 220 199 / 0.86);
+  border-radius: 23px 23px 23px 10px;
+  box-shadow: 0 5px 0 rgb(45 42 34 / 0.13);
+}
+
+.hextech-library-card.rarity-金色 .hextech-library-art { background: var(--library-ochre); }
+.hextech-library-card[data-kind="reaction"] .hextech-library-art { background: var(--library-terracotta); }
+
+.hextech-library-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hextech-library-card-heading h3 {
+  margin: 6px 0 3px;
+  color: var(--library-ink);
+  font: 700 15px/1.2 "Epilogue", sans-serif;
+  letter-spacing: -0.025em;
+}
+
+.hextech-library-card-heading small {
+  color: var(--library-muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.hextech-library-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hextech-library-tags em {
+  padding: 3px 6px;
+  color: var(--library-muted);
+  background: rgb(232 220 199 / 0.72);
+  border: 1px solid rgb(96 108 56 / 0.24);
+  border-radius: 999px;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hextech-library-tags em:last-child {
+  color: var(--library-sand);
+  background: var(--library-moss);
+  border-color: var(--library-moss);
+}
+
+.hextech-library-summary {
+  min-height: 58px;
+  margin: 0;
+  padding: 5px 13px 12px;
+  color: var(--library-ink);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.hextech-library-details {
+  border-block-start: 1px dashed rgb(96 108 56 / 0.35);
+}
+
+.hextech-library-details summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 13px;
+  color: var(--library-moss);
+  cursor: pointer;
+  list-style: none;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.hextech-library-details summary::-webkit-details-marker { display: none; }
+.hextech-library-details summary svg { transition: transform 300ms ease; }
+.hextech-library-details[open] summary svg { transform: rotate(180deg); }
+
+.hextech-library-detail-body {
+  display: grid;
+  gap: 12px;
+  padding: 0 13px 14px;
+  color: var(--library-ink);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.hextech-library-detail-body dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid rgb(96 108 56 / 0.24);
+  border-radius: 14px;
+}
+
+.hextech-library-detail-body dl > div {
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr);
+  gap: 8px;
+  padding: 7px 8px;
+  border-block-end: 1px solid rgb(96 108 56 / 0.18);
+}
+
+.hextech-library-detail-body dl > div:last-child { border-block-end: 0; }
+.hextech-library-detail-body dt { color: var(--library-muted); font-weight: 600; }
+.hextech-library-detail-body dd { margin: 0; overflow-wrap: anywhere; }
+
+.hextech-library-detail-body section > strong {
+  display: block;
+  margin-block-end: 5px;
+  color: var(--library-moss);
+}
+
+.hextech-library-detail-body ol {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-inline-start: 19px;
+}
+
+.hextech-library-empty {
+  min-height: 260px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: var(--library-muted);
+  text-align: center;
+}
+
+.hextech-library-empty button {
+  padding: 0 18px;
+  color: var(--library-sand);
+  background: var(--library-moss);
+  border-color: var(--library-moss);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hextech-library-entry {
+  min-height: 44px;
+}
+
+.hero-actions .hextech-library-entry {
+  grid-column: 1 / -1;
+}
+
+.hextech-library-header-entry {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 13px;
+  color: #e8dcc7;
+  background: #606c38;
+  border: 1px solid #8b9d83;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.hextech-library-create-entry {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  color: #2d2a22;
+  background: linear-gradient(135deg, #d4b895, #e8dcc7);
+  border: 1px solid rgb(96 108 56 / 0.5);
+  border-radius: 18px;
+  font-size: 11px;
+}
+
+.hextech-library-create-entry > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.hextech-library-create-entry strong { font-size: 12px; }
+.hextech-library-create-entry small { color: #665f50; white-space: normal; }
+
+.hextech-library-create-entry button {
+  min-width: 128px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  color: #e8dcc7;
+  background: #606c38;
+  border: 1px solid #606c38;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hextech-library-close:hover,
+  .hextech-library-filter button:hover,
+  .hextech-library-create-entry button:hover,
+  .hextech-library-empty button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgb(45 42 34 / 0.16);
+  }
+
+  .hextech-library-card:hover {
+    border-color: var(--library-moss);
+    box-shadow: 0 12px 25px rgb(45 42 34 / 0.14);
+  }
+}
+
+@media (max-width: 59.99rem) {
+  .hextech-library-dialog { height: min(960px, 94dvh); }
+  .hextech-library-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+  .hextech-library-search { grid-column: 1 / -1; }
+  .hextech-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hextech-library-header-entry { width: 44px; padding: 0; }
+  .hextech-library-header-entry span { display: none; }
+}
+
+@media (max-width: 39.99rem) {
+  .hextech-library-backdrop { place-items: stretch; padding: 0; }
+  .hextech-library-dialog {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    padding-block-start: env(safe-area-inset-top);
+  }
+  .hextech-library-header { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 13px; }
+  .hextech-library-book { display: none; }
+  .hextech-library-header h2 { font-size: 22px; }
+  .hextech-library-header p { max-width: 32rem; font-size: 10px; }
+  .hextech-library-toolbar { grid-template-columns: 1fr; gap: 8px; padding: 9px 13px; }
+  .hextech-library-search,
+  .hextech-library-filter,
+  .hextech-library-rarity { grid-column: 1; width: 100%; }
+  .hextech-library-filter { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .hextech-library-filter button { min-width: 0; padding-inline: 4px; }
+  .hextech-library-rarity { justify-content: space-between; }
+  .hextech-library-results-heading { align-items: flex-start; flex-direction: column; gap: 3px; padding: 7px 13px; }
+  .hextech-library-scroll { padding: 10px 13px calc(18px + env(safe-area-inset-bottom)); scrollbar-gutter: auto; }
+  .hextech-library-grid { grid-template-columns: 1fr; gap: 10px; }
+  .hextech-library-summary { min-height: 0; }
+  .hextech-library-create-entry { align-items: stretch; flex-direction: column; }
+  .hextech-library-create-entry button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hextech-library-backdrop,
+  .hextech-library-dialog { animation: none; }
+  .hextech-library-details summary svg { transition: none; }
+}
+
+@keyframes hextech-library-backdrop-in {
+  from { opacity: 0; }
+}
+
+@keyframes hextech-library-dialog-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "friends-holdem",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c green,yellow \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "node --env-file-if-exists=.env --watch server/index.js",
+    "dev:web": "vite",
+    "build": "vite build",
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "test": "node --test tests/*.test.js",
+    "privacy:check": "node scripts/check-public-repo.mjs",
+    "privacy:check:history": "node scripts/check-public-repo.mjs --include-history",
+    "check": "npm run privacy:check && npm test && npm run build",
+    "env:check": "node scripts/validate-env.mjs --env-file .env --mode local",
+    "env:check:production": "node scripts/validate-env.mjs --env-file .env --mode production"
+  },
+  "dependencies": {
+    "@fontsource/epilogue": "5.2.8",
+    "bcryptjs": "3.0.3",
+    "express": "5.2.1",
+    "lucide-react": "1.31.0",
+    "pokersolver": "2.1.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "socket.io": "4.8.3",
+    "socket.io-client": "4.8.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.5",
+    "concurrently": "10.0.5",
+    "vite": "8.2.1"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}

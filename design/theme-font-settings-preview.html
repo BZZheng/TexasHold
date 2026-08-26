@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>德州扑克 · 主题与字号设置样式稿</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      color-scheme: dark;
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #101511;
+      color: #eee7da;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background: #101511;
+    }
+
+    button { font: inherit; }
+
+    .style-sheet {
+      width: min(100%, 1600px);
+      margin-inline: auto;
+      padding: 24px;
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 32px;
+      margin-block-end: 18px;
+      padding-block-end: 18px;
+      border-bottom: 1px solid #2c372e;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: #d4ad5f;
+      font: 700 11px/1.2 "Epilogue", "PingFang SC", sans-serif;
+      letter-spacing: 0.18em;
+    }
+
+    h1 {
+      margin: 0;
+      font: 700 26px/1.2 "Epilogue", "PingFang SC", sans-serif;
+      letter-spacing: -0.025em;
+    }
+
+    .sheet-header p:last-child {
+      max-width: 520px;
+      margin: 0;
+      color: #8f9d91;
+      font-size: 13px;
+      line-height: 1.65;
+      text-align: right;
+    }
+
+    .study-grid {
+      display: grid;
+      grid-template-columns: minmax(760px, 1fr) 344px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .study-column {
+      min-width: 0;
+    }
+
+    .study-label {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-inline: 4px;
+    }
+
+    .study-label strong {
+      font-size: 13px;
+      letter-spacing: 0.04em;
+    }
+
+    .study-label span {
+      color: #7f8d82;
+      font-size: 11px;
+    }
+
+    .preview-shell {
+      --page: #111814;
+      --page-deep: #0d130f;
+      --surface: #1c2720;
+      --surface-raised: #233127;
+      --surface-soft: #18221b;
+      --felt: #29543e;
+      --felt-deep: #1e3f30;
+      --rail: #131a16;
+      --ink: #eee7da;
+      --ink-strong: #faf3e7;
+      --muted: #9aa99d;
+      --faint: #718077;
+      --rule: #35443a;
+      --rule-strong: #566052;
+      --gold: #d4ad5f;
+      --gold-strong: #edc978;
+      --gold-ink: #2a2111;
+      --action: #326c54;
+      --action-strong: #43856a;
+      --danger: #b76550;
+      --card: #ede4d3;
+      --card-ink: #24271f;
+      --ui-base: 14px;
+      color: var(--ink);
+      font-size: var(--ui-base);
+      background: var(--page);
+      border: 1px solid #354039;
+      box-shadow: 0 24px 70px rgb(0 0 0 / 30%);
+      transition: background 180ms ease, color 180ms ease;
+    }
+
+    .preview-shell.is-light {
+      color-scheme: light;
+      --page: #d5c8b1;
+      --page-deep: #c7b89f;
+      --surface: #e8dcc7;
+      --surface-raised: #efe4d1;
+      --surface-soft: #ddcfb8;
+      --felt: #66775d;
+      --felt-deep: #52644b;
+      --rail: #564d3f;
+      --ink: #29342d;
+      --ink-strong: #17221c;
+      --muted: #68736b;
+      --faint: #818b83;
+      --rule: #b8aa92;
+      --rule-strong: #93856e;
+      --gold: #bd8c38;
+      --gold-strong: #9e6d1d;
+      --gold-ink: #241b0e;
+      --action: #5e775f;
+      --action-strong: #4d6850;
+      --danger: #a35242;
+      --card: #f1e9da;
+      --card-ink: #24271f;
+    }
+
+    .preview-shell.font-small { --ui-base: 12px; }
+    .preview-shell.font-standard { --ui-base: 14px; }
+    .preview-shell.font-large { --ui-base: 16px; }
+
+    .desktop-window {
+      height: 744px;
+      display: grid;
+      grid-template-rows: 56px minmax(0, 1fr);
+      overflow: hidden;
+      border-radius: 16px;
+    }
+
+    .app-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding-inline: 18px;
+      background: var(--page-deep);
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .brand,
+    .room-meta,
+    .top-actions,
+    .player-mini,
+    .pot,
+    .action-buttons,
+    .settings-title,
+    .setting-heading,
+    .drawer-actions {
+      display: flex;
+      align-items: center;
+    }
+
+    .brand { gap: 9px; }
+
+    .brand-mark {
+      color: var(--gold);
+      font-size: 25px;
+      line-height: 1;
+    }
+
+    .brand strong {
+      font: 700 1.02em/1 "Epilogue", "PingFang SC", sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    .room-meta {
+      gap: 9px;
+      color: var(--muted);
+      font-size: 0.78em;
+    }
+
+    .room-meta b {
+      color: var(--ink-strong);
+      font-family: "Epilogue", sans-serif;
+      letter-spacing: 0.08em;
+    }
+
+    .top-actions { gap: 8px; }
+
+    .status-chip,
+    .icon-btn {
+      border: 1px solid var(--rule);
+      background: var(--surface-soft);
+      color: var(--muted);
+    }
+
+    .status-chip {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 0.7em;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    .desktop-body {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .table-stage {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+      background: var(--page);
+    }
+
+    .table-stage::after {
+      content: "样式预览 · 非真实牌局";
+      position: absolute;
+      inset: 14px auto auto 16px;
+      color: var(--faint);
+      font-size: 0.66em;
+      letter-spacing: 0.08em;
+    }
+
+    .poker-table {
+      position: absolute;
+      inset: 112px 44px auto;
+      height: 282px;
+      background: var(--felt);
+      border: 18px solid var(--rail);
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1px var(--rule-strong), 0 22px 42px rgb(0 0 0 / 25%);
+    }
+
+    .poker-table::before {
+      content: "德州 扑克";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      color: rgb(255 255 255 / 10%);
+      font: 700 1.2em/1 "Epilogue", "PingFang SC", sans-serif;
+      letter-spacing: 0.18em;
+      transform: translate(-50%, -50%);
+    }
+
+    .pot {
+      position: absolute;
+      inset: 61px auto auto 50%;
+      gap: 6px;
+      color: var(--gold-strong);
+      font: 700 0.75em/1 "Epilogue", "PingFang SC", sans-serif;
+      transform: translateX(-50%);
+    }
+
+    .chip-dot {
+      width: 13px;
+      height: 13px;
+      border: 2px dotted var(--gold-ink);
+      border-radius: 50%;
+      background: var(--gold);
+    }
+
+    .board {
+      position: absolute;
+      inset: 112px auto auto 50%;
+      display: flex;
+      gap: 5px;
+      transform: translateX(-50%);
+    }
+
+    .card {
+      width: 38px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      color: var(--card-ink);
+      background: var(--card);
+      border: 1px solid rgb(0 0 0 / 22%);
+      border-radius: 6px;
+      font: 700 0.82em/1 "Epilogue", sans-serif;
+      box-shadow: 0 6px 12px rgb(0 0 0 / 16%);
+    }
+
+    .card.red { color: #a74b3b; }
+    .card.empty { color: transparent; background: transparent; border-style: dashed; border-color: rgb(255 255 255 / 16%); box-shadow: none; }
+
+    .seat {
+      position: absolute;
+      z-index: 2;
+      min-width: 104px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 8px;
+      color: var(--ink);
+      background: var(--surface-raised);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      box-shadow: 0 9px 20px rgb(0 0 0 / 18%);
+    }
+
+    .seat.current {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold), transparent 60%);
+    }
+
+    .seat .avatar {
+      width: 27px;
+      height: 27px;
+      display: grid;
+      flex: 0 0 auto;
+      place-items: center;
+      color: var(--ink-strong);
+      background: var(--felt-deep);
+      border-radius: 50%;
+      font-size: 0.72em;
+    }
+
+    .seat span { min-width: 0; }
+    .seat strong,
+    .seat small { display: block; white-space: nowrap; }
+    .seat strong { max-width: 8ch; overflow: hidden; color: var(--ink-strong); font-size: 0.72em; text-overflow: ellipsis; }
+    .seat small { margin-top: 2px; color: var(--gold); font: 700 0.65em/1 "Epilogue", sans-serif; }
+
+    .seat-1 { inset: 72px auto auto 39%; }
+    .seat-2 { inset: 112px 31px auto auto; }
+    .seat-3 { inset: 244px 10px auto auto; }
+    .seat-4 { inset: 368px 54px auto auto; }
+    .seat-5 { inset: 401px auto auto 41%; }
+    .seat-6 { inset: 368px auto auto 54px; }
+    .seat-7 { inset: 244px auto auto 10px; }
+    .seat-8 { inset: 112px auto auto 31px; }
+
+    .action-dock {
+      position: absolute;
+      inset: auto 16px 16px;
+      padding: 12px;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: 13px;
+    }
+
+    .turn-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 0.72em;
+    }
+
+    .turn-line strong { color: var(--ink-strong); }
+
+    .timer {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      color: var(--gold-strong);
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      font: 700 0.78em/1 "Epilogue", sans-serif;
+    }
+
+    .action-buttons { gap: 7px; }
+
+    .action-buttons button {
+      min-width: 0;
+      flex: 1;
+      min-height: 40px;
+      padding: 0 8px;
+      color: var(--ink);
+      background: var(--surface-soft);
+      border: 1px solid var(--rule);
+      border-radius: 9px;
+      font-size: 0.73em;
+      font-weight: 600;
+    }
+
+    .action-buttons .primary {
+      color: #f7f0e2;
+      background: var(--action);
+      border-color: var(--action-strong);
+    }
+
+    .settings-panel {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      background: var(--surface);
+      border-left: 1px solid var(--rule);
+    }
+
+    .settings-title {
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .settings-title div { display: grid; gap: 3px; }
+
+    .settings-title h2 {
+      margin: 0;
+      color: var(--ink-strong);
+      font: 700 1.12em/1.2 "Epilogue", "PingFang SC", sans-serif;
+    }
+
+    .settings-title small,
+    .settings-intro,
+    .device-note { color: var(--muted); }
+
+    .settings-title small { font-size: 0.66em; }
+
+    .settings-intro {
+      margin: 10px 0 20px;
+      font-size: 0.74em;
+      line-height: 1.55;
+    }
+
+    .setting-group {
+      padding: 17px 0;
+      border-top: 1px solid var(--rule);
+    }
+
+    .setting-heading {
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 11px;
+    }
+
+    .setting-heading strong { font-size: 0.79em; }
+    .setting-heading span { color: var(--faint); font-size: 0.65em; }
+
+    .theme-options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .theme-option,
+    .font-option {
+      color: var(--muted);
+      background: var(--surface-soft);
+      border: 1px solid var(--rule);
+      cursor: pointer;
+    }
+
+    .theme-option {
+      min-height: 86px;
+      display: grid;
+      gap: 8px;
+      padding: 9px;
+      border-radius: 11px;
+      text-align: left;
+    }
+
+    .theme-option[aria-pressed="true"],
+    .font-option[aria-pressed="true"] {
+      color: var(--ink-strong);
+      border-color: var(--gold);
+      box-shadow: inset 0 0 0 1px var(--gold);
+    }
+
+    .theme-swatch {
+      height: 43px;
+      display: grid;
+      grid-template-columns: 1fr 0.62fr;
+      gap: 4px;
+      padding: 5px;
+      border-radius: 7px;
+      border: 1px solid rgb(128 128 128 / 22%);
+    }
+
+    .theme-swatch.dark { background: #111814; }
+    .theme-swatch.light { background: #d5c8b1; }
+
+    .theme-swatch i {
+      display: block;
+      border-radius: 4px;
+    }
+
+    .theme-swatch.dark i:first-child { background: #29543e; }
+    .theme-swatch.dark i:last-child { background: #233127; }
+    .theme-swatch.light i:first-child { background: #66775d; }
+    .theme-swatch.light i:last-child { background: #e8dcc7; }
+
+    .theme-option > span { font-size: 0.72em; font-weight: 600; }
+
+    .font-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .font-option {
+      min-height: 58px;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      padding: 6px;
+      border-radius: 9px;
+    }
+
+    .font-option b { color: var(--ink-strong); font-size: 0.79em; }
+    .font-option small { color: var(--faint); font: 600 0.61em/1 "Epilogue", sans-serif; }
+
+    .live-sample {
+      padding: 12px;
+      background: var(--surface-soft);
+      border: 1px solid var(--rule);
+      border-radius: 11px;
+    }
+
+    .sample-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 0.66em;
+    }
+
+    .sample-label b { color: var(--gold); font-family: "Epilogue", sans-serif; }
+
+    .mini-table {
+      position: relative;
+      height: 78px;
+      background: var(--felt);
+      border: 8px solid var(--rail);
+      border-radius: 50%;
+    }
+
+    .mini-table::after {
+      content: "底池 1,240";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      color: #f3e7cb;
+      font: 700 0.68em/1 "Epilogue", "PingFang SC", sans-serif;
+      transform: translate(-50%, -50%);
+    }
+
+    .device-note {
+      display: flex;
+      gap: 7px;
+      margin-top: 13px;
+      font-size: 0.66em;
+      line-height: 1.45;
+    }
+
+    .drawer-actions {
+      gap: 9px;
+      margin-top: auto;
+      padding-top: 16px;
+    }
+
+    .drawer-actions button {
+      min-height: 42px;
+      border-radius: 9px;
+      font-size: 0.74em;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .drawer-actions .reset {
+      width: 42%;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--rule);
+    }
+
+    .drawer-actions .done {
+      flex: 1;
+      color: var(--gold-ink);
+      background: var(--gold);
+      border: 1px solid var(--gold-strong);
+    }
+
+    .phone {
+      position: relative;
+      width: 344px;
+      height: 744px;
+      overflow: hidden;
+      border: 7px solid #273029;
+      border-radius: 31px;
+      box-shadow: 0 24px 70px rgb(0 0 0 / 34%);
+    }
+
+    .phone .app-bar {
+      height: 52px;
+      padding-inline: 12px;
+    }
+
+    .phone .brand strong { font-size: 0.82em; }
+    .phone .brand-mark { font-size: 21px; }
+
+    .mobile-game {
+      position: absolute;
+      inset: 52px 0 0;
+      background: var(--page);
+    }
+
+    .mobile-game .poker-table {
+      inset: 87px 18px auto;
+      height: 164px;
+      border-width: 12px;
+    }
+
+    .mobile-game .pot { inset-block-start: 39px; }
+
+    .mobile-game .board {
+      inset-block-start: 67px;
+      gap: 3px;
+    }
+
+    .mobile-game .card {
+      width: 27px;
+      height: 38px;
+      font-size: 0.62em;
+    }
+
+    .mobile-game .seat {
+      min-width: 70px;
+      gap: 4px;
+      padding: 4px 5px;
+      border-radius: 8px;
+    }
+
+    .mobile-game .seat .avatar { width: 20px; height: 20px; }
+    .mobile-game .seat strong { font-size: 0.58em; }
+    .mobile-game .seat small { font-size: 0.54em; }
+    .mobile-game .seat-1 { inset: 48px auto auto 38%; }
+    .mobile-game .seat-2 { inset: 82px 4px auto auto; }
+    .mobile-game .seat-3 { inset: 152px 0 auto auto; }
+    .mobile-game .seat-4 { inset: 229px 12px auto auto; }
+    .mobile-game .seat-5 { inset: 247px auto auto 39%; }
+    .mobile-game .seat-6 { inset: 229px auto auto 12px; }
+    .mobile-game .seat-7 { inset: 152px auto auto 0; }
+    .mobile-game .seat-8 { inset: 82px auto auto 4px; }
+
+    .mobile-sheet {
+      position: absolute;
+      z-index: 5;
+      inset: auto 0 0;
+      min-height: 431px;
+      padding: 12px 16px 18px;
+      background: var(--surface);
+      border-top: 1px solid var(--rule-strong);
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -18px 44px rgb(0 0 0 / 28%);
+    }
+
+    .sheet-handle {
+      width: 42px;
+      height: 4px;
+      margin: 0 auto 13px;
+      background: var(--rule-strong);
+      border-radius: 999px;
+    }
+
+    .mobile-sheet .settings-title { margin-bottom: 1px; }
+    .mobile-sheet .settings-intro { margin: 7px 0 10px; }
+    .mobile-sheet .setting-group { padding: 11px 0; }
+    .mobile-sheet .theme-option { min-height: 67px; }
+    .mobile-sheet .theme-swatch { height: 31px; }
+    .mobile-sheet .font-option { min-height: 49px; }
+    .mobile-sheet .device-note { margin-top: 9px; }
+    .mobile-sheet .drawer-actions { padding-top: 10px; }
+
+    .sheet-footer {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 18px;
+      overflow: hidden;
+      background: #2b352d;
+      border: 1px solid #2b352d;
+      border-radius: 12px;
+    }
+
+    .decision {
+      min-height: 70px;
+      padding: 14px 16px;
+      background: #151c17;
+    }
+
+    .decision b {
+      display: block;
+      margin-bottom: 5px;
+      color: #d7b269;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    .decision span {
+      color: #8f9d91;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1120px) {
+      .study-grid { grid-template-columns: 1fr; }
+      .mobile-column { display: none; }
+      .desktop-body { grid-template-columns: minmax(0, 1fr) 340px; }
+    }
+
+    @media (max-width: 760px) {
+      .style-sheet { padding: 12px; }
+      .sheet-header { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .sheet-header p:last-child { text-align: left; }
+      .desktop-column { display: none; }
+      .mobile-column { display: block; }
+      .phone { width: min(100%, 344px); margin-inline: auto; }
+      .sheet-footer { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="style-sheet">
+    <header class="sheet-header">
+      <div>
+        <p class="eyebrow">SETTINGS STYLE STUDY · 01</p>
+        <h1>主题与字号设置</h1>
+      </div>
+      <p>延续当前私人牌局的深苔绿与黄铜金，浅色方案使用沙岩与鼠尾草色。主题即时预览，字号按小、标准、大三档切换。</p>
+    </header>
+
+    <main class="study-grid">
+      <section class="study-column desktop-column">
+        <div class="study-label"><strong>桌面端 · 右侧设置抽屉</strong><span>深色 / 标准字号（可点击切换）</span></div>
+        <div class="preview-shell desktop-window is-dark font-standard" data-preview>
+          <header class="app-bar">
+            <div class="brand"><span class="brand-mark">♠</span><strong>德州扑克</strong></div>
+            <div class="room-meta"><span>房间</span><b>8F2K</b><span>·</span><span>第 12 局</span></div>
+            <div class="top-actions"><span class="status-chip">6 位玩家 · 2 位观战</span><button class="icon-btn" aria-label="界面设置">⚙</button></div>
+          </header>
+
+          <div class="desktop-body">
+            <div class="table-stage">
+              <div class="poker-table">
+                <div class="pot"><i class="chip-dot"></i>底池 1,240</div>
+                <div class="board"><span class="card red">A♥</span><span class="card">10♣</span><span class="card">7♠</span><span class="card empty">—</span><span class="card empty">—</span></div>
+              </div>
+              <div class="seat seat-1"><i class="avatar">林</i><span><strong>林北</strong><small>2,460</small></span></div>
+              <div class="seat seat-2 current"><i class="avatar">陈</i><span><strong>陈浩</strong><small>1,880</small></span></div>
+              <div class="seat seat-3"><i class="avatar">周</i><span><strong>周末</strong><small>3,100</small></span></div>
+              <div class="seat seat-4"><i class="avatar">许</i><span><strong>许然</strong><small>940</small></span></div>
+              <div class="seat seat-5"><i class="avatar">你</i><span><strong>你</strong><small>2,500</small></span></div>
+              <div class="seat seat-6"><i class="avatar">安</i><span><strong>安琪</strong><small>1,620</small></span></div>
+              <div class="seat seat-7"><i class="avatar">梁</i><span><strong>梁生</strong><small>4,060</small></span></div>
+              <div class="seat seat-8"><i class="avatar">苏</i><span><strong>苏打</strong><small>2,280</small></span></div>
+              <div class="action-dock">
+                <div class="turn-line"><span><strong>轮到你行动</strong> · 跟注 120</span><span class="timer">26</span></div>
+                <div class="action-buttons"><button>弃牌</button><button>过牌</button><button class="primary">跟注 120</button><button>加注⌄</button></div>
+              </div>
+            </div>
+
+            <aside class="settings-panel">
+              <div class="settings-title"><div><h2>界面设置</h2><small>显示偏好</small></div><button class="icon-btn" aria-label="关闭">×</button></div>
+              <p class="settings-intro">选择更适合当前光线与观看距离的显示方式，牌局状态不会受到影响。</p>
+
+              <section class="setting-group">
+                <div class="setting-heading"><strong>主题</strong><span data-theme-label>深色</span></div>
+                <div class="theme-options">
+                  <button class="theme-option" data-theme="dark" aria-pressed="true"><span class="theme-swatch dark"><i></i><i></i></span><span>深色</span></button>
+                  <button class="theme-option" data-theme="light" aria-pressed="false"><span class="theme-swatch light"><i></i><i></i></span><span>浅色</span></button>
+                </div>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-heading"><strong>字体大小</strong><span data-font-label>标准 · 14px</span></div>
+                <div class="font-options">
+                  <button class="font-option" data-font="small" aria-pressed="false"><b>小</b><small>12px</small></button>
+                  <button class="font-option" data-font="standard" aria-pressed="true"><b>标准</b><small>14px</small></button>
+                  <button class="font-option" data-font="large" aria-pressed="false"><b>大</b><small>16px</small></button>
+                </div>
+              </section>
+
+              <section class="setting-group">
+                <div class="setting-heading"><strong>实时预览</strong><span>随选择更新</span></div>
+                <div class="live-sample"><div class="sample-label"><span>轮到你行动</span><b>26 秒</b></div><div class="mini-table"></div></div>
+                <div class="device-note"><span>◉</span><span>设置只保存在当前设备，不会改变其他玩家看到的界面。</span></div>
+              </section>
+
+              <div class="drawer-actions"><button class="reset" data-reset>恢复默认</button><button class="done">完成</button></div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section class="study-column mobile-column">
+        <div class="study-label"><strong>移动端 · 底部设置面板</strong><span>浅色 / 大字号</span></div>
+        <div class="preview-shell phone is-light font-large" data-preview>
+          <header class="app-bar"><div class="brand"><span class="brand-mark">♠</span><strong>德州扑克</strong></div><button class="icon-btn" aria-label="界面设置">⚙</button></header>
+          <div class="mobile-game">
+            <div class="poker-table"><div class="pot"><i class="chip-dot"></i>1,240</div><div class="board"><span class="card red">A♥</span><span class="card">10♣</span><span class="card">7♠</span></div></div>
+            <div class="seat seat-1"><i class="avatar">林</i><span><strong>林北</strong><small>2,460</small></span></div>
+            <div class="seat seat-2 current"><i class="avatar">陈</i><span><strong>陈浩</strong><small>1,880</small></span></div>
+            <div class="seat seat-3"><i class="avatar">周</i><span><strong>周末</strong><small>3,100</small></span></div>
+            <div class="seat seat-4"><i class="avatar">许</i><span><strong>许然</strong><small>940</small></span></div>
+            <div class="seat seat-5"><i class="avatar">你</i><span><strong>你</strong><small>2,500</small></span></div>
+            <div class="seat seat-6"><i class="avatar">安</i><span><strong>安琪</strong><small>1,620</small></span></div>
+            <div class="seat seat-7"><i class="avatar">梁</i><span><strong>梁生</strong><small>4,060</small></span></div>
+            <div class="seat seat-8"><i class="avatar">苏</i><span><strong>苏打</strong><small>2,280</small></span></div>
+          </div>
+
+          <div class="mobile-sheet">
+            <div class="sheet-handle"></div>
+            <div class="settings-title"><div><h2>界面设置</h2><small>显示偏好</small></div><button class="icon-btn" aria-label="关闭">×</button></div>
+            <p class="settings-intro">即时预览主题与文字大小。</p>
+
+            <section class="setting-group">
+              <div class="setting-heading"><strong>主题</strong><span data-theme-label>浅色</span></div>
+              <div class="theme-options">
+                <button class="theme-option" data-theme="dark" aria-pressed="false"><span class="theme-swatch dark"><i></i><i></i></span><span>深色</span></button>
+                <button class="theme-option" data-theme="light" aria-pressed="true"><span class="theme-swatch light"><i></i><i></i></span><span>浅色</span></button>
+              </div>
+            </section>
+
+            <section class="setting-group">
+              <div class="setting-heading"><strong>字体大小</strong><span data-font-label>大 · 16px</span></div>
+              <div class="font-options">
+                <button class="font-option" data-font="small" aria-pressed="false"><b>小</b><small>12px</small></button>
+                <button class="font-option" data-font="standard" aria-pressed="false"><b>标准</b><small>14px</small></button>
+                <button class="font-option" data-font="large" aria-pressed="true"><b>大</b><small>16px</small></button>
+              </div>
+            </section>
+
+            <div class="device-note"><span>◉</span><span>只影响当前设备；切换不会中断牌局。</span></div>
+            <div class="drawer-actions"><button class="reset" data-reset>恢复默认</button><button class="done">完成</button></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="sheet-footer">
+      <div class="decision"><b>视觉方向</b><span>深色延续现有牌桌；浅色使用沙岩、燕麦与鼠尾草色，不使用纯白。</span></div>
+      <div class="decision"><b>响应式落位</b><span>桌面从右侧打开，移动端从底部打开，不遮断“当前牌局仍在进行”的上下文。</span></div>
+      <div class="decision"><b>字号规则</b><span>三档同时影响正文、数字和控件标签，牌桌结构及触摸目标尺寸保持不变。</span></div>
+    </footer>
+  </div>
+
+  <script>
+    const fontMeta = {
+      small: "小 · 12px",
+      standard: "标准 · 14px",
+      large: "大 · 16px",
+    };
+
+    document.querySelectorAll("[data-preview]").forEach((preview) => {
+      const setTheme = (theme) => {
+        preview.classList.toggle("is-dark", theme === "dark");
+        preview.classList.toggle("is-light", theme === "light");
+        preview.querySelectorAll("[data-theme]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.theme === theme)));
+        preview.querySelector("[data-theme-label]").textContent = theme === "dark" ? "深色" : "浅色";
+      };
+
+      const setFont = (size) => {
+        preview.classList.remove("font-small", "font-standard", "font-large");
+        preview.classList.add(`font-${size}`);
+        preview.querySelectorAll("[data-font]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.font === size)));
+        preview.querySelector("[data-font-label]").textContent = fontMeta[size];
+      };
+
+      preview.querySelectorAll("[data-theme]").forEach((button) => button.addEventListener("click", () => setTheme(button.dataset.theme)));
+      preview.querySelectorAll("[data-font]").forEach((button) => button.addEventListener("click", () => setFont(button.dataset.font)));
+      preview.querySelector("[data-reset]").addEventListener("click", () => { setTheme("dark"); setFont("standard"); });
+    });
+  </script>
+</body>
+</html>

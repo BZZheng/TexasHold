@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "generatedWith": "OpenAI built-in imagegen",
+  "style": {
+    "direction": "cute chibi game stickers over the existing private-club poker table",
+    "outline": "thick dark-brown outline",
+    "rendering": "clean cel shading",
+    "palette": ["ivory", "coral", "sage", "honey gold", "sky blue", "awakening lavender"],
+    "background": "transparent",
+    "forbidden": ["text", "logo", "watermark"]
+  },
+  "characters": [
+    {
+      "id": "fenxiang",
+      "name": "粉香",
+      "normal": { "path": "characters/fenxiang-normal.png", "width": 857, "height": 900 },
+      "awaken": { "path": "characters/fenxiang-awaken.png", "width": 826, "height": 900 }
+    },
+    {
+      "id": "xu",
+      "name": "许哥",
+      "normal": { "path": "characters/xu-normal.png", "width": 600, "height": 900 },
+      "awaken": { "path": "characters/xu-awaken.png", "width": 600, "height": 900 }
+    },
+    {
+      "id": "jiansheng",
+      "name": "剑圣哥",
+      "normal": { "path": "characters/jiansheng-normal.png", "width": 846, "height": 900 },
+      "awaken": { "path": "characters/jiansheng-awaken.png", "width": 751, "height": 900 }
+    },
+    {
+      "id": "ya",
+      "name": "鸭哥",
+      "normal": { "path": "characters/ya-normal.png", "width": 600, "height": 900 },
+      "awaken": { "path": "characters/ya-awaken.png", "width": 600, "height": 900 }
+    },
+    {
+      "id": "qiwan",
+      "name": "奇玩",
+      "normal": { "path": "characters/qiwan-normal.png", "width": 600, "height": 900 },
+      "awaken": { "path": "characters/qiwan-awaken.png", "width": 600, "height": 900 }
+    },
+    {
+      "id": "zige",
+      "name": "资哥",
+      "normal": { "path": "characters/zige-normal.png", "width": 857, "height": 900 },
+      "awaken": { "path": "characters/zige-awaken.png", "width": 900, "height": 844 }
+    },
+    {
+      "id": "mao",
+      "name": "毛哥",
+      "normal": { "path": "characters/mao-normal.png", "width": 600, "height": 900 },
+      "awaken": { "path": "characters/mao-awaken.png", "width": 600, "height": 900 }
+    },
+    {
+      "id": "wengwengwen",
+      "name": "嗡嗡文",
+      "normal": { "path": "../parallel-wengwengwen/characters/wengwengwen-normal.png", "width": 600, "height": 900 },
+      "awaken": { "path": "../parallel-wengwengwen/characters/wengwengwen-awaken.png", "width": 600, "height": 900 }
+    }
+  ],
+  "skills": [
+    { "id": "fake-weak", "name": "装糖阴你一手", "category": "情报", "path": "skills/fake-weak.png" },
+    { "id": "fake-strong", "name": "装阴糖你一手", "category": "情报", "path": "skills/fake-strong.png" },
+    { "id": "xray", "name": "透视眼", "category": "情报", "path": "skills/xray.png" },
+    { "id": "mind-read", "name": "读心术", "category": "情报", "path": "skills/mind-read.png" },
+    { "id": "public-reveal", "name": "明牌审判", "category": "情报", "path": "skills/public-reveal.png" },
+    { "id": "charm", "name": "魅惑", "category": "控制", "path": "skills/charm.png" },
+    { "id": "intimidate", "name": "恐吓玩家", "category": "控制", "path": "skills/intimidate.png" },
+    { "id": "silence", "name": "沉默是金", "category": "控制", "path": "skills/silence.png" },
+    { "id": "peace-treaty", "name": "和平条约", "category": "控制", "path": "skills/peace-treaty.png" },
+    { "id": "disarm", "name": "缴械", "category": "控制", "path": "skills/disarm.png" },
+    { "id": "gambler", "name": "我是赌圣", "category": "变牌", "path": "skills/gambler.png" },
+    { "id": "reforge", "name": "回炉重造", "category": "变牌", "path": "skills/reforge.png" },
+    { "id": "prophet", "name": "预言家", "category": "变牌", "path": "skills/prophet.png" },
+    { "id": "swap-trick", "name": "偷梁换柱", "category": "变牌", "path": "skills/swap-trick.png" },
+    { "id": "river-veto", "name": "河牌否决", "category": "变牌", "path": "skills/river-veto.png" },
+    { "id": "shield", "name": "技能护盾", "category": "防御", "path": "skills/shield.png" },
+    { "id": "mirror", "name": "反弹镜", "category": "防御", "path": "skills/mirror.png" },
+    { "id": "smoke-bomb", "name": "烟雾弹", "category": "防御", "path": "skills/smoke-bomb.png" },
+    { "id": "escape", "name": "金蝉脱壳", "category": "防御", "path": "skills/escape.png" },
+    { "id": "catch-cheater", "name": "抓老千", "category": "防御", "path": "skills/catch-cheater.png" },
+    { "id": "pot-bomb", "name": "底池炸弹", "category": "战术", "path": "skills/pot-bomb.png" },
+    { "id": "raise-cap", "name": "限高令", "category": "战术", "path": "skills/raise-cap.png" },
+    { "id": "duel-contract", "name": "单挑契约", "category": "战术", "path": "skills/duel-contract.png" },
+    { "id": "last-stand", "name": "背水一战", "category": "战术", "path": "skills/last-stand.png" },
+    { "id": "check-raise-hunter", "name": "后手猎人", "category": "战术", "path": "skills/check-raise-hunter.png" },
+    { "id": "insurance", "name": "保险单", "category": "经济", "path": "skills/insurance.png" },
+    { "id": "bounty", "name": "悬赏令", "category": "经济", "path": "skills/bounty.png" },
+    { "id": "hand-prediction", "name": "牌型预报", "category": "经济", "path": "skills/hand-prediction.png" },
+    { "id": "stop-loss", "name": "止损协议", "category": "经济", "path": "skills/stop-loss.png" },
+    { "id": "fixed-deposit", "name": "定期存款", "category": "经济", "path": "skills/fixed-deposit.png" }
+  ],
+  "skillOutput": {
+    "width": 512,
+    "height": 512,
+    "format": "PNG RGBA",
+    "recommendedDisplay": "48–96 px"
+  }
+}

@@ -1,0 +1,13 @@
+# Template: replace the reserved example hostname in the target's untracked copy.
+@holdem host play.example.com
+handle @holdem {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+	reverse_proxy 127.0.0.1:7790 {
+		header_down -Server
+	}
+}
