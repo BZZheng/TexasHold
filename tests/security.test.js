@@ -103,6 +103,46 @@ test("settlement history is copied into a capacity-bounded local archive ring", 
   }
 });
 
+test("private hand analysis is deduplicated and kept in its own bounded archive ring", () => {
+  const dataDir = mkdtempSync(path.join(tmpdir(), "friends-holdem-analysis-"));
+  try {
+    const store = new Store(dataDir, { analysisArchiveMaxBytes: 1800, minFreeBytes: 1 });
+    const analysisEvent = (index) => {
+      const handId = `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+      return {
+        id: handId,
+        handId,
+        analysisVersion: 1,
+        createdAt: new Date(Date.UTC(2026, 7, 26, 12, 0, index)).toISOString(),
+        roomCode: "TST2",
+        handNumber: index,
+        actions: [{ sequence: 1, userId: "a", street: "preflop", action: "fold" }],
+        players: [
+          { userId: "a", username: "玩家 A", holeCards: ["As", "Kh"] },
+          { userId: "b", username: "玩家 B", holeCards: ["Qc", "Jd"] },
+        ],
+      };
+    };
+
+    assert.equal(store.addHandAnalysis(analysisEvent(1)), true);
+    assert.equal(store.addHandAnalysis(analysisEvent(1)), false);
+    for (let index = 2; index <= 12; index += 1) store.addHandAnalysis(analysisEvent(index));
+
+    const status = store.storageStatus();
+    const persisted = JSON.parse(readFileSync(
+      path.join(dataDir, "archive-ring", "hand-analysis-events.json"),
+      "utf8",
+    ));
+    assert.equal(persisted.events.at(-1).players[0].holeCards[0], "As");
+    assert.equal(new Set(persisted.events.map(({ id }) => id)).size, persisted.events.length);
+    assert.ok(status.analysisArchiveEvents > 0);
+    assert.ok(status.analysisArchiveBytes <= status.analysisArchiveMaxBytes);
+    assert.ok(status.analysisArchiveDroppedEvents > 0);
+  } finally {
+    rmSync(dataDir, { recursive: true, force: true });
+  }
+});
+
 test("all remote joins start as spectators even when player mode is forged", () => {
   const { manager, room } = managerFixture();
   const attacker = socket("guest", "请求玩家席的访客");

@@ -532,8 +532,13 @@ test("the live leaderboard ranks connected humans by their authoritative current
 
 test("a hand containing any test player is settled as leaderboard-ineligible for every human", () => {
   const histories = [];
+  const analyses = [];
+  const actionLogs = [];
   const io = { emit() {}, to() { return { emit() {} }; } };
-  const store = { addHistory(entry) { histories.push(entry); } };
+  const store = {
+    addHistory(entry) { histories.push(entry); },
+    addHandAnalysis(entry) { analyses.push(entry); },
+  };
   const host = {
     id: "socket-practice-host",
     data: { user: { id: "practice-host", username: "练习房主" } },
@@ -541,7 +546,13 @@ test("a hand containing any test player is settled as leaderboard-ineligible for
     leave() {},
     on() {},
   };
-  const manager = new RoomManager(io, store);
+  const manager = new RoomManager(io, store, {
+    logger: {
+      info(domain, event, fields) {
+        if (event === "poker_action_recorded") actionLogs.push({ domain, event, fields });
+      },
+    },
+  });
   const created = manager.createRoom(host, {
     name: "测试玩家练习局",
     settings: { maxPlayers: 8, initialChips: 2000, smallBlind: 5, bigBlind: 10 },
@@ -561,6 +572,14 @@ test("a hand containing any test player is settled as leaderboard-ineligible for
   assert.equal(histories.length, 1);
   assert.equal(histories[0].userId, host.data.user.id);
   assert.equal(histories[0].leaderboardEligible, false);
+  assert.equal(analyses.length, 1);
+  assert.equal(analyses[0].leaderboardEligible, false);
+  assert.equal(analyses[0].players.length, 2);
+  assert.ok(analyses[0].players.every(({ holeCards }) => holeCards.length === 2));
+  assert.equal(actionLogs.length, 1);
+  assert.equal(actionLogs[0].domain, "action");
+  assert.equal(actionLogs[0].fields.action, "fold");
+  assert.equal(JSON.stringify(actionLogs[0]).includes("holeCards"), false);
   assert.throws(
     () => manager.finalSettlement(host),
     /测试玩家的练习牌局不进入好友终局结算/,

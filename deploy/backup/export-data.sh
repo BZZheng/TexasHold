@@ -5,6 +5,7 @@ DATA_ROOT="${TEXAS_HOLDEM_DATA_ROOT:-/srv/texas-holdem/data}"
 ACCOUNT_FILE="${TEXAS_HOLDEM_ACCOUNT_FILE:-$DATA_ROOT/hot/texashold.json}"
 RUNTIME_FILE="${TEXAS_HOLDEM_RUNTIME_FILE:-$DATA_ROOT/hot/runtime-rooms.json}"
 ARCHIVE_FILE="${TEXAS_HOLDEM_ARCHIVE_FILE:-$DATA_ROOT/archive-ring/history-events.json}"
+ANALYSIS_FILE="${TEXAS_HOLDEM_ANALYSIS_FILE:-$DATA_ROOT/archive-ring/hand-analysis-events.json}"
 REPLICATION_FILE="${TEXAS_HOLDEM_REPLICATION_FILE:-$DATA_ROOT/replication-state.json}"
 LOG_ARCHIVE_DIR="${TEXAS_HOLDEM_LOG_ARCHIVE_DIR:-$DATA_ROOT/logs/archive-ring}"
 LOG_RETRY_WINDOW_SECONDS="${TEXAS_HOLDEM_LOG_RETRY_WINDOW_SECONDS:-300}"
@@ -23,14 +24,21 @@ if [ ! -f "$ACCOUNT_FILE" ] || [ ! -r "$ACCOUNT_FILE" ]; then
 fi
 
 # The explicit original command is a capability handshake. An older archive
-# puller sends no command and continues receiving the version-2 state payload;
-# only the v3-aware puller is allowed to advance the log replication heartbeat.
+# puller sends no command and continues receiving the version-2 state payload.
+# Version 3 receives logs; version 4 also receives private hand-analysis
+# records. The fixed-command archive account remains the only caller allowed
+# to advance the replication heartbeat.
 log_export_enabled=0
-if [ -z "${SSH_CONNECTION:-}" ] || [ "${SSH_ORIGINAL_COMMAND:-}" = "texas-holdem-backup-v3" ]; then
+analysis_export_enabled=0
+if [ -z "${SSH_CONNECTION:-}" ] || [ "${SSH_ORIGINAL_COMMAND:-}" = "texas-holdem-backup-v4" ]; then
+  log_export_enabled=1
+  analysis_export_enabled=1
+elif [ "${SSH_ORIGINAL_COMMAND:-}" = "texas-holdem-backup-v3" ]; then
   log_export_enabled=1
 fi
 backup_version=2
 if [ "$log_export_enabled" -eq 1 ]; then backup_version=3; fi
+if [ "$analysis_export_enabled" -eq 1 ]; then backup_version=4; fi
 
 # Version 3 adds bounded, rotated JSONL log segments. Logs are never read by
 # the game request path: a restricted archive account pulls completed segments
@@ -48,6 +56,14 @@ if [ -f "$ARCHIVE_FILE" ] && [ -r "$ARCHIVE_FILE" ]; then
   /bin/cat -- "$ARCHIVE_FILE"
 else
   printf '{"version":1,"events":[]}'
+fi
+if [ "$analysis_export_enabled" -eq 1 ]; then
+  printf ',"analysis":'
+  if [ -f "$ANALYSIS_FILE" ] && [ -r "$ANALYSIS_FILE" ]; then
+    /bin/cat -- "$ANALYSIS_FILE"
+  else
+    printf '{"version":1,"events":[]}'
+  fi
 fi
 if [ "$log_export_enabled" -eq 1 ]; then
   printf ',"logs":{"version":1,"segments":['
@@ -94,7 +110,9 @@ if [ -n "${SSH_CONNECTION:-}" ]; then
   replication_temp="$REPLICATION_FILE.$$.tmp"
   umask 077
   if [ "$log_export_enabled" -eq 1 ]; then
-    printf '{"lastArchivePullAt":"%s","lastArchiveLogPullAt":"%s","transport":"restricted-ssh","protocol":"backup-v3-logs"}\n' "$pulled_at" "$pulled_at" > "$replication_temp"
+    protocol="backup-v3-logs"
+    if [ "$analysis_export_enabled" -eq 1 ]; then protocol="backup-v4-analysis"; fi
+    printf '{"lastArchivePullAt":"%s","lastArchiveLogPullAt":"%s","transport":"restricted-ssh","protocol":"%s"}\n' "$pulled_at" "$pulled_at" "$protocol" > "$replication_temp"
   else
     printf '{"lastArchivePullAt":"%s","transport":"restricted-ssh","protocol":"backup-v2"}\n' "$pulled_at" > "$replication_temp"
   fi

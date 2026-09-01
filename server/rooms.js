@@ -2960,6 +2960,39 @@ export class RoomManager {
     }
   }
 
+  #logPokerAction(room) {
+    const entry = room.game?.latestAnalysisAction?.();
+    if (!entry) return;
+    this.logger?.info?.("action", "poker_action_recorded", {
+      roomCode: room.code,
+      handId: room.game.handId,
+      handNumber: room.handNumber,
+      roomMode: room.mode,
+      userId: entry.userId,
+      actionSequence: entry.sequence,
+      street: entry.street,
+      action: entry.action,
+      source: entry.source,
+      automatic: entry.automatic,
+      seat: entry.seat,
+      buttonSeat: entry.buttonSeat,
+      potBefore: entry.potBefore,
+      potAfter: entry.potAfter,
+      currentBetBefore: entry.currentBetBefore,
+      toCallBefore: entry.toCallBefore,
+      effectiveStackBefore: entry.effectiveStackBefore,
+      stackBefore: entry.stackBefore,
+      stackAfter: entry.stackAfter,
+      amountCommitted: entry.amountCommitted,
+      raiseTo: entry.raiseTo,
+      isAggressive: entry.isAggressive,
+      isFullRaise: entry.isFullRaise,
+      allInKind: entry.allInKind,
+      activePlayerCountBefore: entry.activePlayerCountBefore,
+      secondsRemainingBefore: entry.secondsRemainingBefore,
+    });
+  }
+
   gameAction(socket, payload = {}) {
     payload = authorizePayload(
       payload,
@@ -3021,6 +3054,7 @@ export class RoomManager {
       if (opportunityStarted) this.#clearHextechAllInOpportunity(room);
       throw error;
     }
+    this.#logPokerAction(room);
     if (opportunityStarted && !room.game.playerSnapshot(member.userId)?.allIn) {
       this.#clearHextechAllInOpportunity(room);
     }
@@ -3363,8 +3397,15 @@ export class RoomManager {
       room.game.setActionPolicy(null);
       room.game.setTurnTimePolicy?.(null);
     }
-    room.gameSynced = true;
     const leaderboardEligible = !room.game.players.some((player) => player.isBot);
+    this.store.addHandAnalysis?.(room.game.analysisRecord({
+      roomCode: room.code,
+      roomName: room.name,
+      handNumber: room.handNumber,
+      roomMode: room.mode,
+      leaderboardEligible,
+    }));
+    room.gameSynced = true;
     const bustedHextechBots = [];
     const bustedHextechHumans = [];
     if (!leaderboardEligible) room.settlement.hasPracticeHands = true;
@@ -3523,11 +3564,16 @@ export class RoomManager {
           ? this.#beginHextechAllInOpportunity(room, actorId, action)
           : false;
         try {
-          room.game.act(actorId, action, null, { pauseAfterCommit: opportunityStarted });
+          room.game.act(actorId, action, null, {
+            pauseAfterCommit: opportunityStarted,
+            automatic: true,
+            source: "bot",
+          });
         } catch (error) {
           if (opportunityStarted) this.#clearHextechAllInOpportunity(room);
           throw error;
         }
+        this.#logPokerAction(room);
         if (opportunityStarted && !room.game.playerSnapshot(actorId)?.allIn) {
           this.#clearHextechAllInOpportunity(room);
         }
@@ -3652,6 +3698,7 @@ export class RoomManager {
         ? (room.game.legalActions(timeoutActorId)?.canCheck ? "check" : "fold")
         : null;
       if (room.game?.timeoutIfNeeded()) {
+        this.#logPokerAction(room);
         if (timeoutBefore && timeoutActorId && timeoutAction) {
           if (room.hextech.characters) {
             this.#recordHextechCharacterPokerAction(room, {

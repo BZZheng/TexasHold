@@ -113,7 +113,7 @@ if (!validBoolean(allowNoOrigin)) errors.push("ALLOW_NO_ORIGIN must be true or f
 if (origins.some((origin) => !validateOrigin(origin))) {
   errors.push("APP_ORIGINS must contain comma-separated exact http(s) origins without paths or trailing slashes");
 }
-for (const key of ["ARCHIVE_RING_MAX_BYTES", "STORAGE_MIN_FREE_BYTES"]) {
+for (const key of ["ARCHIVE_RING_MAX_BYTES", "HAND_ANALYSIS_RING_MAX_BYTES", "STORAGE_MIN_FREE_BYTES"]) {
   if (values[key] != null && !positiveInteger(values[key])) errors.push(`${key} must be a positive integer`);
 }
 for (const key of ["LOG_ENABLED", "LOG_STDOUT"]) {

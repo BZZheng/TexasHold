@@ -479,6 +479,102 @@ test("heads-up call and checks advance through every street", () => {
   assert.ok(game.viewFor("a").players.every((player) => player.cards.length === 2));
 });
 
+test("private hand analysis preserves cards, streets, amounts and routes across restore", () => {
+  const game = twoPlayerGame();
+  const originalCards = Object.fromEntries(
+    game.players.map((player) => [player.userId, [...player.hand]]),
+  );
+
+  game.act("a", "call");
+  const restored = HoldemGame.restore(game.exportState(), { settings });
+  assert.deepEqual(restored.latestAnalysisAction(), game.latestAnalysisAction());
+  restored.act("b", "check");
+  restored.act("b", "check");
+  restored.act("a", "fold");
+
+  assert.equal(Object.hasOwn(restored.viewFor("a"), "analysisActions"), false);
+  const record = restored.analysisRecord({
+    roomCode: "TST2",
+    roomName: "分析测试房",
+    handNumber: 7,
+  });
+  assert.equal(record.handId, restored.handId);
+  assert.deepEqual(record.communityCards, restored.community);
+  assert.deepEqual(record.actions.map(({ street, action }) => ({ street, action })), [
+    { street: "preflop", action: "call" },
+    { street: "preflop", action: "check" },
+    { street: "flop", action: "check" },
+    { street: "flop", action: "fold" },
+  ]);
+  assert.equal(record.actions[0].potBefore, 15);
+  assert.equal(record.actions[0].amountCommitted, 5);
+  assert.equal(record.actions[0].toCallBefore, 5);
+  assert.deepEqual(
+    Object.fromEntries(record.players.map((player) => [player.userId, player.holeCards])),
+    originalCards,
+  );
+  assert.equal(record.players.find((player) => player.userId === "a").foldedAtStreet, "flop");
+  assert.ok(record.players.every((player) => player.publiclyRevealed === false));
+});
+
+test("analysis classifies stack-depleting calls and raises as all-in routes", () => {
+  const callingGame = twoPlayerGame({
+    players: [
+      { userId: "a", username: "玩家 A", seat: 0, stack: 10 },
+      { userId: "b", username: "玩家 B", seat: 1, stack: 100 },
+    ],
+  });
+  callingGame.act("a", "call");
+  assert.deepEqual(
+    {
+      action: callingGame.latestAnalysisAction().action,
+      requestedAction: callingGame.latestAnalysisAction().requestedAction,
+      allInKind: callingGame.latestAnalysisAction().allInKind,
+    },
+    { action: "all-in", requestedAction: "call", allInKind: "call" },
+  );
+
+  const raisingGame = twoPlayerGame({
+    players: [
+      { userId: "a", username: "玩家 A", seat: 0, stack: 20 },
+      { userId: "b", username: "玩家 B", seat: 1, stack: 100 },
+    ],
+  });
+  raisingGame.act("a", "raise", 20);
+  assert.deepEqual(
+    {
+      action: raisingGame.latestAnalysisAction().action,
+      requestedAction: raisingGame.latestAnalysisAction().requestedAction,
+      allInKind: raisingGame.latestAnalysisAction().allInKind,
+    },
+    { action: "all-in", requestedAction: "raise", allInKind: "raise" },
+  );
+});
+
+test("analysis retains original and replacement hole cards plus forced Hextech actions", () => {
+  const game = twoPlayerGame();
+  const player = game.currentPlayer;
+  const originalCards = [...player.hand];
+  const replacement = game.deck.at(-1);
+  game.replaceHoleCardWithSpecificCard({ userId: player.userId, cardIndex: 0, card: replacement });
+  game.forceFold({ userId: player.userId });
+
+  const record = game.analysisRecord({ roomCode: "HEX2", roomName: "海克斯分析", handNumber: 1 });
+  const archivedPlayer = record.players.find(({ userId }) => userId === player.userId);
+  assert.deepEqual(archivedPlayer.startingHoleCards, originalCards);
+  assert.deepEqual(archivedPlayer.holeCards, [replacement, originalCards[1]]);
+  assert.deepEqual(record.holeCardReplacements[0], {
+    userId: player.userId,
+    cardIndex: 0,
+    discarded: originalCards[0],
+    replacement,
+    kind: "specific",
+  });
+  assert.equal(record.actions[0].action, "fold");
+  assert.equal(record.actions[0].source, "hextech");
+  assert.equal(record.actions[0].automatic, true);
+});
+
 test("a fold immediately awards the full pot to the remaining player", () => {
   const game = twoPlayerGame();
   game.act("a", "fold");
@@ -914,4 +1010,6 @@ test("timeout checks when possible and folds when facing a bet", () => {
   assert.equal(game.timeoutIfNeeded(game.turnDeadline + 1), true);
   assert.equal(game.stage, "finished");
   assert.equal(game.finishedReason, "fold");
+  assert.equal(game.latestAnalysisAction().source, "timeout");
+  assert.equal(game.latestAnalysisAction().automatic, true);
 });

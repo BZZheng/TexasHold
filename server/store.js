@@ -14,6 +14,7 @@ import {
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_SESSIONS_PER_USER = 8;
 const DEFAULT_ARCHIVE_MAX_BYTES = 256 * 1024 * 1024;
+const DEFAULT_ANALYSIS_ARCHIVE_MAX_BYTES = 512 * 1024 * 1024;
 const DEFAULT_MIN_FREE_BYTES = 1024 * 1024 * 1024;
 const PLAYER_STATS_VERSION = 2;
 const LEGACY_PROVIDER_SEGMENT = String.fromCharCode(78, 97, 115);
@@ -83,6 +84,10 @@ function statsFromHistory(history) {
 export class Store {
   constructor(dataDir, {
     archiveMaxBytes = positiveInteger(process.env.ARCHIVE_RING_MAX_BYTES, DEFAULT_ARCHIVE_MAX_BYTES),
+    analysisArchiveMaxBytes = positiveInteger(
+      process.env.HAND_ANALYSIS_RING_MAX_BYTES,
+      DEFAULT_ANALYSIS_ARCHIVE_MAX_BYTES,
+    ),
     minFreeBytes = positiveInteger(process.env.STORAGE_MIN_FREE_BYTES, DEFAULT_MIN_FREE_BYTES),
     logger = null,
   } = {}) {
@@ -92,17 +97,21 @@ export class Store {
     this.runtimeFile = path.join(this.hotDir, "runtime-rooms.json");
     this.archiveDir = path.join(dataDir, "archive-ring");
     this.archiveFile = path.join(this.archiveDir, "history-events.json");
+    this.analysisArchiveFile = path.join(this.archiveDir, "hand-analysis-events.json");
     this.replicationFile = path.join(dataDir, "replication-state.json");
     this.archiveMaxBytes = archiveMaxBytes;
+    this.analysisArchiveMaxBytes = analysisArchiveMaxBytes;
     this.minFreeBytes = minFreeBytes;
     this.logger = logger;
     this.archiveDroppedEvents = 0;
+    this.analysisArchiveDroppedEvents = 0;
     fs.mkdirSync(this.hotDir, { recursive: true, mode: 0o700 });
     fs.mkdirSync(this.archiveDir, { recursive: true, mode: 0o700 });
     this.#migrateLegacyFile(path.join(dataDir, "texashold.json"), this.file);
     this.#migrateLegacyFile(path.join(dataDir, "runtime-rooms.json"), this.runtimeFile);
     this.data = this.#read();
     this.archive = this.#readArchive();
+    this.analysisArchive = this.#readAnalysisArchive();
     const historyMigration = this.#migrateHistoryEligibility();
     const hadPlaintextTokens = this.data.sessions.some((session) => session.token && !session.tokenHash);
     let needsSave = historyMigration.dataChanged;
@@ -264,6 +273,19 @@ export class Store {
     }
   }
 
+  #readAnalysisArchive() {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(this.analysisArchiveFile, "utf8"));
+      return {
+        version: 1,
+        events: Array.isArray(parsed.events) ? parsed.events : [],
+      };
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+      return { version: 1, events: [] };
+    }
+  }
+
   #saveArchive() {
     let payload = { version: 1, events: this.archive.events };
     let encoded = JSON.stringify(payload, null, 2);
@@ -278,6 +300,21 @@ export class Store {
     fs.renameSync(temp, this.archiveFile);
   }
 
+  #saveAnalysisArchive() {
+    let payload = { version: 1, events: this.analysisArchive.events };
+    let encoded = JSON.stringify(payload, null, 2);
+    while (Buffer.byteLength(encoded) > this.analysisArchiveMaxBytes
+      && this.analysisArchive.events.length > 1) {
+      this.analysisArchive.events.shift();
+      this.analysisArchiveDroppedEvents += 1;
+      payload = { version: 1, events: this.analysisArchive.events };
+      encoded = JSON.stringify(payload, null, 2);
+    }
+    const temp = `${this.analysisArchiveFile}.${process.pid}.tmp`;
+    fs.writeFileSync(temp, encoded, { mode: 0o600 });
+    fs.renameSync(temp, this.analysisArchiveFile);
+  }
+
   storageStatus() {
     let freeBytes = null;
     try {
@@ -289,6 +326,12 @@ export class Store {
     let archiveBytes = 0;
     try {
       archiveBytes = fs.statSync(this.archiveFile).size;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    let analysisArchiveBytes = 0;
+    try {
+      analysisArchiveBytes = fs.statSync(this.analysisArchiveFile).size;
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
@@ -309,6 +352,10 @@ export class Store {
       archiveBytes,
       archiveMaxBytes: this.archiveMaxBytes,
       archiveDroppedEvents: this.archiveDroppedEvents,
+      analysisArchiveEvents: this.analysisArchive.events.length,
+      analysisArchiveBytes,
+      analysisArchiveMaxBytes: this.analysisArchiveMaxBytes,
+      analysisArchiveDroppedEvents: this.analysisArchiveDroppedEvents,
       lastArchivePullAt,
       freeBytes,
       acceptsNewRooms: freeBytes == null || freeBytes >= this.minFreeBytes,
@@ -446,6 +493,42 @@ export class Store {
       roomMode: event.roomMode,
       leaderboardEligible,
     });
+  }
+
+  addHandAnalysis(entry) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error("手牌分析归档格式不正确");
+    }
+    if (typeof entry.id !== "string" || !entry.id
+      || entry.id !== entry.handId
+      || entry.analysisVersion !== 1
+      || typeof entry.createdAt !== "string"
+      || !Array.isArray(entry.actions)
+      || !Array.isArray(entry.players)) {
+      throw new Error("手牌分析归档字段不完整");
+    }
+    if (this.analysisArchive.events.some((candidate) => candidate.id === entry.id)) return false;
+    const event = structuredClone(entry);
+    const previousEvents = this.analysisArchive.events;
+    const previousDroppedEvents = this.analysisArchiveDroppedEvents;
+    this.analysisArchive.events = [...previousEvents, event];
+    try {
+      this.#saveAnalysisArchive();
+    } catch (error) {
+      this.analysisArchive.events = previousEvents;
+      this.analysisArchiveDroppedEvents = previousDroppedEvents;
+      throw error;
+    }
+    this.logger?.info?.("settlement", "hand_analysis_recorded", {
+      roomCode: event.roomCode,
+      handId: event.handId,
+      handNumber: event.handNumber,
+      roomMode: event.roomMode,
+      playerCount: event.players.length,
+      actionCount: event.actions.length,
+      leaderboardEligible: event.leaderboardEligible !== false,
+    });
+    return true;
   }
 
   historyFor(userId) {

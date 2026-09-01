@@ -33,6 +33,7 @@ data/
 **/texashold.json
 **/runtime-rooms.json
 **/history-events.json
+**/hand-analysis-events.json
 **/replication-state.json
 *.db
 *.db-*

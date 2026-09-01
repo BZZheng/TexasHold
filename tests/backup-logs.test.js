@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import {
   chmodSync,
+  existsSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -46,6 +47,57 @@ test("the restricted server export delivers verified, redacted JSONL segments to
     writeFileSync(path.join(dataRoot, "archive-ring", "history-events.json"), JSON.stringify({
       version: 1, events: [],
     }));
+    const analysisEvent = {
+      id: "11111111-1111-4111-8111-111111111111",
+      analysisVersion: 1,
+      createdAt: "2026-08-26T10:00:02.000Z",
+      handId: "11111111-1111-4111-8111-111111111111",
+      roomCode: "TST2",
+      roomName: "分析归档测试",
+      handNumber: 1,
+      roomMode: "classic",
+      leaderboardEligible: true,
+      settings: { smallBlind: 5, bigBlind: 10, actionSeconds: 30 },
+      buttonSeat: 0,
+      smallBlindSeat: 0,
+      bigBlindSeat: 1,
+      communityCards: ["As", "Kh", "2c", "7d", "9s"],
+      finishedReason: "showdown",
+      potAwarded: 40,
+      timeExtensionFees: 0,
+      holeCardReplacements: [],
+      winners: [{ userId: "a", username: "玩家 A", amount: 40, handName: "一对" }],
+      players: [
+        {
+          userId: "a", username: "玩家 A", isBot: false, seat: 0,
+          startingStack: 2000, endingStack: 2020, netChipChange: 20, totalCommitted: 20,
+          startingHoleCards: ["Ah", "Qc"], holeCards: ["Ah", "Qc"], folded: false, foldedAtStreet: null, allIn: false,
+          reachedShowdown: true, publiclyRevealed: true, wonPotAmount: 40, handName: "一对",
+          bestFiveCardIds: ["As", "Ah", "Kh", "Qc", "9s"], opponentsBeaten: ["b"],
+        },
+        {
+          userId: "b", username: "玩家 B", isBot: false, seat: 1,
+          startingStack: 2000, endingStack: 1980, netChipChange: -20, totalCommitted: 20,
+          startingHoleCards: ["Jd", "Tc"], holeCards: ["Jd", "Tc"], folded: false, foldedAtStreet: null, allIn: false,
+          reachedShowdown: true, publiclyRevealed: true, wonPotAmount: 0, handName: null,
+          bestFiveCardIds: ["As", "Kh", "Jd", "Tc", "9s"], opponentsBeaten: [],
+        },
+      ],
+      actions: [{
+        sequence: 1, at: "2026-08-26T10:00:01.000Z", userId: "a", street: "preflop",
+        action: "call", requestedAction: "call", source: "player", automatic: false,
+        seat: 0, buttonSeat: 0, communityCards: [], potBefore: 15, potAfter: 20,
+        currentBetBefore: 10, currentBetAfter: 10, minRaiseBefore: 10,
+        playerBetBefore: 5, playerBetAfter: 10, toCallBefore: 5, effectiveStackBefore: 2000,
+        stackBefore: 1995, stackAfter: 1990, totalCommittedBefore: 5,
+        totalCommittedAfter: 10, amountCommitted: 5, raiseTo: null, isAggressive: false,
+        isFullRaise: false, allInKind: null, allInAfter: false, foldedAfter: false,
+        activePlayerCountBefore: 2, allInPlayerCountBefore: 0, secondsRemainingBefore: 27,
+      }],
+    };
+    writeFileSync(path.join(dataRoot, "archive-ring", "hand-analysis-events.json"), JSON.stringify({
+      version: 1, events: [analysisEvent],
+    }));
     const segmentName = "application-test-20260826100000000-1.jsonl";
     const segmentContent = `${JSON.stringify({
       ts: "2026-08-26T10:00:00.000Z",
@@ -70,7 +122,9 @@ test("the restricted server export delivers verified, redacted JSONL segments to
     });
     assert.equal(exported.status, 0, exported.stderr);
     const payload = JSON.parse(exported.stdout);
-    assert.equal(payload.backupVersion, 3);
+    assert.equal(payload.backupVersion, 4);
+    assert.equal(payload.analysis.events.length, 1);
+    assert.deepEqual(payload.analysis.events[0].players[0].holeCards, ["Ah", "Qc"]);
     assert.equal(payload.logs.segments.length, 1);
     const encodedSegment = payload.logs.segments[0];
     assert.equal(encodedSegment.name, segmentName);
@@ -84,7 +138,7 @@ test("the restricted server export delivers verified, redacted JSONL segments to
     const fakeSsh = path.join(fakeBin, "ssh");
     writeFileSync(fakeSsh, [
       "#!/bin/sh",
-      "case \"$*\" in *texas-holdem-backup-v3*) ;; *) exit 64 ;; esac",
+      "case \"$*\" in *texas-holdem-backup-v4*) ;; *) exit 64 ;; esac",
       "exec /bin/cat -- \"$FAKE_SSH_PAYLOAD\"",
       "",
     ].join("\n"));
@@ -123,8 +177,24 @@ test("the restricted server export delivers verified, redacted JSONL segments to
     assert.equal(readFileSync(archivedLogs[0], "utf8").includes("test-only-password"), false);
 
     const latest = JSON.parse(readFileSync(path.join(archiveRoot, "latest", "texas-holdem-state.json"), "utf8"));
-    assert.equal(latest.backupVersion, 3);
+    assert.equal(latest.backupVersion, 4);
     assert.equal("logs" in latest, false, "transport logs must not churn state snapshots");
+    assert.equal(latest.analysis.events.length, 1);
+    const analysisFiles = filesBelow(path.join(archiveRoot, "archive", "analysis", "hands"));
+    assert.equal(analysisFiles.length, 1);
+    assert.deepEqual(JSON.parse(readFileSync(analysisFiles[0], "utf8")).players[1].holeCards, ["Jd", "Tc"]);
+    const databasePath = path.join(archiveRoot, "database", "texas-holdem-analytics.sqlite3");
+    assert.equal(existsSync(databasePath), true);
+    const databaseProbe = spawnSync("python3", ["-c", [
+      "import json, sqlite3, sys",
+      "db=sqlite3.connect(sys.argv[1])",
+      "summary=db.execute(\"select hands, vpip_hands, pfr_hands, net_chip_change from player_strategy_summary where user_id='a'\").fetchone()",
+      "print(json.dumps({'hands':db.execute('select count(*) from hands').fetchone()[0], 'players':db.execute('select count(*) from hand_players').fetchone()[0], 'actions':db.execute('select count(*) from hand_actions').fetchone()[0], 'cards':json.loads(db.execute(\"select hole_cards_json from hand_players where user_id='a'\").fetchone()[0]), 'summary':summary}))",
+    ].join(";"), databasePath], { encoding: "utf8" });
+    assert.equal(databaseProbe.status, 0, databaseProbe.stderr);
+    assert.deepEqual(JSON.parse(databaseProbe.stdout), {
+      hands: 1, players: 2, actions: 1, cards: ["Ah", "Qc"], summary: [1, 1, 0, 20],
+    });
 
     const unsafeRecord = `${JSON.stringify({
       ts: "2026-08-26T10:01:00.000Z",

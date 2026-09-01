@@ -12,7 +12,7 @@ export const FOLD_REVEAL_SECONDS = 5;
 export const RESTART_RECONNECT_GRACE_MS = 10_000;
 export const ALL_IN_RUNOUT_STEP_MS = 1_000;
 const MAX_RESTORED_RUNOUT_STEP_MS = 10_000;
-const PERSISTED_GAME_VERSION = 3;
+const PERSISTED_GAME_VERSION = 4;
 const SUITS = ["s", "h", "d", "c"];
 const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
 export const HEXTECH_BLANK_CARD = "BLANK";
@@ -135,6 +135,11 @@ export class HoldemGame {
     this.timeExtensionFees = 0;
     this.timeExtensionUsed = false;
     this.actionLog = [];
+    // Private, server-owned action facts used to build the immutable hand
+    // analysis record at settlement. Unlike actionLog, this is never attached
+    // to a socket view or the general application logger because the final
+    // record also contains every player's private hole cards.
+    this.analysisActions = [];
     this.winners = [];
     this.finishedReason = null;
     // Replacement history and showdown provenance are server-owned facts.
@@ -189,7 +194,7 @@ export class HoldemGame {
   }
 
   static restore(state, { settings, now = Date.now(), reconnectGraceMs = RESTART_RECONNECT_GRACE_MS } = {}) {
-    if (!state || ![1, 2, PERSISTED_GAME_VERSION].includes(state.version) || !Array.isArray(state.players)) {
+    if (!state || ![1, 2, 3, PERSISTED_GAME_VERSION].includes(state.version) || !Array.isArray(state.players)) {
       throw new Error("牌局恢复数据格式不正确");
     }
     if (!settings || typeof settings !== "object") throw new Error("牌局恢复设置缺失");
@@ -255,6 +260,22 @@ export class HoldemGame {
     game.timeExtensionFees = state.timeExtensionFees;
     game.timeExtensionUsed = Boolean(state.timeExtensionUsed);
     game.actionLog = Array.isArray(state.actionLog) ? state.actionLog.map((entry) => ({ ...entry })) : [];
+    game.analysisActions = Array.isArray(state.analysisActions)
+      ? state.analysisActions.map((entry) => ({
+        ...entry,
+        communityCards: Array.isArray(entry.communityCards) ? [...entry.communityCards] : [],
+      }))
+      : [];
+    if (game.analysisActions.some((entry, index) => (
+      !entry
+      || !Number.isSafeInteger(entry.sequence)
+      || entry.sequence !== index + 1
+      || !game.players.some((player) => player.userId === entry.userId)
+      || !["preflop", "flop", "turn", "river"].includes(entry.street)
+      || !["fold", "check", "call", "bet", "raise", "all-in"].includes(entry.action)
+    ))) {
+      throw new Error("牌局恢复的分析行动记录不正确");
+    }
     game.winners = Array.isArray(state.winners) ? state.winners.map((winner) => ({ ...winner })) : [];
     game.finishedReason = state.finishedReason ?? null;
     game.holeCardReplacements = Array.isArray(state.holeCardReplacements)
@@ -405,6 +426,10 @@ export class HoldemGame {
       timeExtensionFees: this.timeExtensionFees,
       timeExtensionUsed: this.timeExtensionUsed,
       actionLog: this.actionLog.map((entry) => ({ ...entry })),
+      analysisActions: this.analysisActions.map((entry) => ({
+        ...entry,
+        communityCards: [...entry.communityCards],
+      })),
       winners: this.winners.map((winner) => ({ ...winner })),
       finishedReason: this.finishedReason,
       holeCardReplacements: this.holeCardReplacements.map((entry) => ({ ...entry })),
@@ -855,11 +880,20 @@ export class HoldemGame {
       if (!Number.isSafeInteger(maximumAmount) || maximumAmount <= 0) throw new Error("强制跟注上限不正确");
       const player = this.players.find((candidate) => candidate.userId === userId);
       if (!player || player.folded || player.allIn) throw new Error("目标当前不能跟注");
+      const analysisBefore = this.#analysisActionContext(player);
       const toCall = Math.max(0, this.currentBet - player.bet);
       const paid = this.#commit(player, Math.min(toCall, maximumAmount, player.stack));
       if (paid <= 0) throw new Error("目标当前无需跟注");
       player.acted = player.bet === this.currentBet;
       this.#record(player.username, `${label} ${paid}${player.allIn ? "，全押" : ""}`);
+      this.#recordAnalysisAction({
+        player,
+        requestedAction: "call",
+        requestedAmount: maximumAmount,
+        before: analysisBefore,
+        automatic: true,
+        source: "hextech",
+      });
       if (player.seat === this.actingSeat) this.#afterAction(player.seat);
       else this.#touchState();
       this.#assertIntegrity();
@@ -1017,9 +1051,18 @@ export class HoldemGame {
       if (this.stage === "finished") throw new Error("本手已经结束");
       const player = this.players.find((candidate) => candidate.userId === userId);
       if (!player || player.folded) throw new Error("玩家当前不能被强制弃牌");
+      const analysisBefore = this.#analysisActionContext(player);
       player.folded = true;
       player.acted = true;
       this.#record(player.username, label);
+      this.#recordAnalysisAction({
+        player,
+        requestedAction: "fold",
+        requestedAmount: null,
+        before: analysisBefore,
+        automatic: true,
+        source: "hextech",
+      });
       const contenders = this.players.filter((candidate) => !candidate.folded);
       if (contenders.length === 1) this.#finishUncontested(contenders[0]);
       else if (player.seat === this.actingSeat) this.#afterAction(player.seat);
@@ -1118,7 +1161,11 @@ export class HoldemGame {
     }
   }
 
-  act(userId, action, amount = null, { pauseAfterCommit = false } = {}) {
+  act(userId, action, amount = null, {
+    pauseAfterCommit = false,
+    automatic = false,
+    source = "player",
+  } = {}) {
     const snapshot = this.#snapshot();
     try {
       const player = this.players.find((candidate) => candidate.userId === userId);
@@ -1127,6 +1174,7 @@ export class HoldemGame {
 
       const legal = this.legalActions(userId);
       const toCall = this.currentBet - player.bet;
+      const analysisBefore = this.#analysisActionContext(player);
 
       if (action === "fold") {
         player.folded = true;
@@ -1172,6 +1220,14 @@ export class HoldemGame {
         throw new Error("未知操作");
       }
 
+      this.#recordAnalysisAction({
+        player,
+        requestedAction: action,
+        requestedAmount: amount,
+        before: analysisBefore,
+        automatic,
+        source,
+      });
       if (pauseAfterCommit) this.pauseForHextechWindow();
       this.#afterAction(player.seat);
       this.#assertIntegrity();
@@ -1195,6 +1251,10 @@ export class HoldemGame {
       currentBet: this.currentBet,
       minRaise: this.minRaise,
       actionLog: this.actionLog.map((entry) => ({ ...entry })),
+      analysisActions: this.analysisActions.map((entry) => ({
+        ...entry,
+        communityCards: [...entry.communityCards],
+      })),
       winners: this.winners.map((winner) => ({ ...winner })),
       finishedReason: this.finishedReason,
       holeCardReplacements: this.holeCardReplacements.map((entry) => ({ ...entry })),
@@ -1245,7 +1305,11 @@ export class HoldemGame {
     if (!this.turnDeadline || Date.now() >= this.turnDeadline) {
       throw new SecurityError("本回合行动时间已经结束", "expired_game_action");
     }
-    return this.act(userId, action, amount, { pauseAfterCommit: pauseForHextechWindow });
+    return this.act(userId, action, amount, {
+      pauseAfterCommit: pauseForHextechWindow,
+      automatic: false,
+      source: "player",
+    });
   }
 
   buyTimeExtension({ userId, handId, actionToken, now = Date.now() }) {
@@ -1313,6 +1377,181 @@ export class HoldemGame {
       }
     }
     player.acted = true;
+  }
+
+  #analysisActionContext(player, now = Date.now()) {
+    const activeOpponents = this.players.filter((candidate) => (
+      candidate.userId !== player.userId && !candidate.folded
+    ));
+    const maximumOpponentStack = Math.max(
+      0,
+      ...activeOpponents.map((candidate) => candidate.stack + candidate.bet),
+    );
+    return {
+      at: new Date(now).toISOString(),
+      street: this.stage,
+      seat: player.seat,
+      buttonSeat: this.buttonSeat,
+      smallBlindSeat: this.smallBlindSeat,
+      bigBlindSeat: this.bigBlindSeat,
+      communityCards: [...this.community],
+      pot: this.pot,
+      currentBet: this.currentBet,
+      minRaise: this.minRaise,
+      playerBet: player.bet,
+      stack: player.stack,
+      totalCommitted: player.totalCommitted,
+      toCall: Math.max(0, this.currentBet - player.bet),
+      effectiveStack: Math.min(player.stack + player.bet, maximumOpponentStack),
+      activePlayerCount: this.players.filter((candidate) => !candidate.folded).length,
+      allInPlayerCount: this.players.filter((candidate) => !candidate.folded && candidate.allIn).length,
+      secondsRemaining: this.turnDeadline == null
+        ? null
+        : Math.max(0, Math.ceil((this.turnDeadline - now) / 1000)),
+    };
+  }
+
+  #recordAnalysisAction({
+    player,
+    requestedAction,
+    requestedAmount,
+    before,
+    automatic,
+    source,
+  }) {
+    const amountCommitted = Math.max(0, player.totalCommitted - before.totalCommitted);
+    const raiseTo = before.playerBet + amountCommitted;
+    const committedAllIn = player.allIn && amountCommitted > 0;
+    const allInWouldRaise = committedAllIn && raiseTo > before.currentBet;
+    const normalizedAction = committedAllIn
+      ? "all-in"
+      : requestedAction === "raise" && before.currentBet === 0
+        ? "bet"
+        : requestedAction;
+    const isAggressive = ["bet", "raise"].includes(normalizedAction) || allInWouldRaise;
+    const isFullRaise = isAggressive && raiseTo >= before.currentBet + before.minRaise;
+    this.analysisActions.push({
+      sequence: this.analysisActions.length + 1,
+      at: before.at,
+      userId: player.userId,
+      street: before.street,
+      action: normalizedAction,
+      requestedAction,
+      requestedAmount: Number.isSafeInteger(requestedAmount) ? requestedAmount : null,
+      source: ["player", "bot", "timeout", "hextech", "system"].includes(source) ? source : "system",
+      automatic: automatic === true,
+      seat: before.seat,
+      buttonSeat: before.buttonSeat,
+      smallBlindSeat: before.smallBlindSeat,
+      bigBlindSeat: before.bigBlindSeat,
+      communityCards: before.communityCards,
+      potBefore: before.pot,
+      potAfter: this.pot,
+      currentBetBefore: before.currentBet,
+      currentBetAfter: this.currentBet,
+      minRaiseBefore: before.minRaise,
+      playerBetBefore: before.playerBet,
+      playerBetAfter: player.bet,
+      toCallBefore: before.toCall,
+      effectiveStackBefore: before.effectiveStack,
+      stackBefore: before.stack,
+      stackAfter: player.stack,
+      totalCommittedBefore: before.totalCommitted,
+      totalCommittedAfter: player.totalCommitted,
+      amountCommitted,
+      raiseTo: isAggressive ? raiseTo : null,
+      isAggressive,
+      isFullRaise,
+      allInKind: normalizedAction === "all-in" ? (allInWouldRaise ? "raise" : "call") : null,
+      allInAfter: player.allIn,
+      foldedAfter: player.folded,
+      activePlayerCountBefore: before.activePlayerCount,
+      allInPlayerCountBefore: before.allInPlayerCount,
+      secondsRemainingBefore: before.secondsRemaining,
+    });
+  }
+
+  latestAnalysisAction() {
+    const entry = this.analysisActions.at(-1);
+    return entry ? { ...entry, communityCards: [...entry.communityCards] } : null;
+  }
+
+  analysisRecord({
+    roomCode,
+    roomName,
+    handNumber,
+    roomMode = "classic",
+    leaderboardEligible = true,
+    createdAt = new Date().toISOString(),
+  } = {}) {
+    if (this.stage !== "finished") throw new Error("只能归档已经结束的手牌分析");
+    const settlementByUserId = new Map(
+      this.settlementResults().map((result) => [result.userId, result]),
+    );
+    return {
+      id: this.handId,
+      analysisVersion: 1,
+      createdAt,
+      handId: this.handId,
+      roomCode: String(roomCode ?? ""),
+      roomName: String(roomName ?? ""),
+      handNumber: Number(handNumber),
+      roomMode: String(roomMode || "classic"),
+      leaderboardEligible: leaderboardEligible !== false,
+      settings: {
+        smallBlind: this.settings.smallBlind,
+        bigBlind: this.settings.bigBlind,
+        actionSeconds: this.actionSeconds,
+      },
+      buttonSeat: this.buttonSeat,
+      smallBlindSeat: this.smallBlindSeat,
+      bigBlindSeat: this.bigBlindSeat,
+      communityCards: [...this.community],
+      finishedReason: this.finishedReason,
+      potAwarded: this.winners.reduce((sum, winner) => sum + winner.amount, 0),
+      timeExtensionFees: this.timeExtensionFees,
+      holeCardReplacements: this.holeCardReplacements.map((entry) => ({ ...entry })),
+      actions: this.analysisActions.map((entry) => ({
+        ...entry,
+        communityCards: [...entry.communityCards],
+      })),
+      players: this.players.map((player) => {
+        const settlement = settlementByUserId.get(player.userId) ?? {};
+        const winner = this.winners.find((candidate) => candidate.userId === player.userId);
+        const foldedAction = [...this.analysisActions]
+          .reverse()
+          .find((entry) => entry.userId === player.userId && entry.action === "fold");
+        const startingHoleCards = [...this.holeCardReplacements]
+          .reverse()
+          .filter((entry) => entry.userId === player.userId)
+          .reduce((cards, entry) => {
+            cards[entry.cardIndex] = entry.discarded;
+            return cards;
+          }, [...player.hand]);
+        return {
+          userId: player.userId,
+          username: player.username,
+          isBot: player.isBot,
+          seat: player.seat,
+          startingStack: player.startingStack,
+          endingStack: player.stack,
+          netChipChange: player.stack - player.startingStack,
+          totalCommitted: player.totalCommitted,
+          startingHoleCards,
+          holeCards: [...player.hand],
+          folded: player.folded,
+          foldedAtStreet: foldedAction?.street ?? null,
+          allIn: player.allIn,
+          reachedShowdown: this.finishedReason === "showdown" && !player.folded,
+          publiclyRevealed: this.finishedReason === "showdown" && !player.folded,
+          wonPotAmount: settlement.wonPotAmount ?? 0,
+          handName: winner?.handName ?? null,
+          bestFiveCardIds: [...(settlement.bestFiveCardIds ?? [])],
+          opponentsBeaten: [...(settlement.opponentsBeaten ?? [])],
+        };
+      }),
+      winners: this.winners.map((winner) => ({ ...winner })),
+    };
   }
 
   #afterAction(previousSeat) {
@@ -1701,7 +1940,10 @@ export class HoldemGame {
       this.#afterAction(player.seat);
       return true;
     }
-    this.act(player.userId, legal.canCheck ? "check" : "fold");
+    this.act(player.userId, legal.canCheck ? "check" : "fold", null, {
+      automatic: true,
+      source: "timeout",
+    });
     return true;
   }
 
