@@ -30,6 +30,8 @@ import {
   UserMinus,
   UserPlus,
   Users,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { api, clearLegacyToken, connectSocket, emit } from "./api.js";
@@ -72,6 +74,13 @@ import {
 import { HextechCharacterControl } from "./hextech/HextechCharacterControl.jsx";
 import { HextechSkillControl } from "./hextech/HextechSkillControl.jsx";
 import { HextechSkillLibrary } from "./hextech/HextechSkillLibrary.jsx";
+import {
+  actionLogEntryKey,
+  actionVoiceAnnouncement,
+  browserSpeechAvailable,
+  cancelVoiceAnnouncements,
+  speakVoiceAnnouncement,
+} from "./voice-announcements.js";
 
 const DEFAULT_SETTINGS = {
   maxPlayers: 8,
@@ -85,7 +94,11 @@ const DEFAULT_SETTINGS = {
 };
 
 const DISPLAY_PREFERENCES_KEY = "friends-holdem-display-preferences";
-const DEFAULT_DISPLAY_PREFERENCES = Object.freeze({ theme: "dark", fontSize: "standard" });
+const DEFAULT_DISPLAY_PREFERENCES = Object.freeze({
+  theme: "dark",
+  fontSize: "standard",
+  voiceAnnouncements: true,
+});
 const FONT_SIZE_META = {
   small: { label: "小", pixels: "12px" },
   standard: { label: "标准", pixels: "14px" },
@@ -96,6 +109,7 @@ function normalizeDisplayPreferences(value) {
   return {
     theme: value?.theme === "light" ? "light" : "dark",
     fontSize: Object.hasOwn(FONT_SIZE_META, value?.fontSize) ? value.fontSize : "standard",
+    voiceAnnouncements: value?.voiceAnnouncements !== false,
   };
 }
 
@@ -214,7 +228,25 @@ function PreferencesButton({ onClick, className = "" }) {
   );
 }
 
-function InterfaceSettings({ open, preferences, onChange, onClose }) {
+function VoiceAnnouncementsButton({ enabled, onToggle }) {
+  const available = browserSpeechAvailable();
+  const Icon = enabled ? Volume2 : VolumeX;
+  const label = !available ? "当前浏览器不支持语音播报" : enabled ? "关闭语音播报" : "开启语音播报";
+  return (
+    <button
+      className={`icon-button voice-announcements-button ${enabled ? "is-on" : "is-off"}`}
+      onClick={onToggle}
+      disabled={!available}
+      aria-label={label}
+      aria-pressed={enabled}
+      title={label}
+    >
+      <Icon size={19} />
+    </button>
+  );
+}
+
+function InterfaceSettings({ open, preferences, onChange, onClose, onToggleVoiceAnnouncements }) {
   useEffect(() => {
     if (!open) return undefined;
     const previousOverflow = document.body.style.overflow;
@@ -231,6 +263,7 @@ function InterfaceSettings({ open, preferences, onChange, onClose }) {
 
   if (!open) return null;
   const fontMeta = FONT_SIZE_META[preferences.fontSize];
+  const voiceAvailable = browserSpeechAvailable();
   return (
     <div className="preferences-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <aside className="preferences-drawer" role="dialog" aria-modal="true" aria-labelledby="preferences-title">
@@ -238,7 +271,7 @@ function InterfaceSettings({ open, preferences, onChange, onClose }) {
         <header className="preferences-heading">
           <div>
             <h2 id="preferences-title">界面设置</h2>
-            <small>显示偏好</small>
+            <small>显示与声音</small>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="关闭界面设置"><X size={20} /></button>
         </header>
@@ -273,6 +306,30 @@ function InterfaceSettings({ open, preferences, onChange, onClose }) {
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="preference-group" aria-labelledby="voice-setting-label">
+          <div className="preference-group-heading">
+            <strong id="voice-setting-label">语音播报</strong>
+            <span>{voiceAvailable ? (preferences.voiceAnnouncements ? "已开启" : "已静音") : "浏览器不支持"}</span>
+          </div>
+          <button
+            type="button"
+            className="voice-preference-toggle"
+            role="switch"
+            aria-checked={voiceAvailable && preferences.voiceAnnouncements}
+            disabled={!voiceAvailable}
+            onClick={onToggleVoiceAnnouncements}
+          >
+            <span className="voice-preference-icon" aria-hidden="true">
+              {preferences.voiceAnnouncements ? <Volume2 size={20} /> : <VolumeX size={20} />}
+            </span>
+            <span>
+              <strong>播报普通牌局行动线</strong>
+              <small>{voiceAvailable ? "包括盲注、过牌、跟注、加注/全押金额和弃牌" : "当前浏览器没有提供系统语音合成功能"}</small>
+            </span>
+            <i aria-hidden="true"><b /></i>
+          </button>
         </section>
 
         <section className="preference-group preferences-preview" aria-labelledby="preview-setting-label">
@@ -1131,7 +1188,7 @@ function TableSurface({ room, game, onRemoveBot, onSelectSeat, onWatchPlayer, se
   );
 }
 
-function RoomHeader({ room, user, onLeave, onCopy, onToggleSidebar, onOpenPreferences, onOpenProfile, onOpenSkillLibrary }) {
+function RoomHeader({ room, user, onLeave, onCopy, onToggleSidebar, onOpenPreferences, onOpenProfile, onOpenSkillLibrary, voiceAnnouncements, onToggleVoiceAnnouncements }) {
   const [copied, setCopied] = useState(false);
   const playerCount = room.members.filter((member) => member.role === "player").length;
   const spectatorCount = room.members.filter((member) => member.role === "spectator").length;
@@ -1159,6 +1216,7 @@ function RoomHeader({ room, user, onLeave, onCopy, onToggleSidebar, onOpenPrefer
         <button className="room-profile-entry" onClick={onOpenProfile} aria-label="打开个人资料" title="个人资料">
           <PlayerAvatar user={user} /><span>{displayName(user)}</span><UserRound size={15} />
         </button>
+        {room.mode !== ROOM_MODES.HEXTECH_CHAOS && <VoiceAnnouncementsButton enabled={voiceAnnouncements} onToggle={onToggleVoiceAnnouncements} />}
         <PreferencesButton onClick={onOpenPreferences} />
         <button className="button ghost desktop-only" onClick={onLeave}>返回大厅</button>
         <button className="icon-button mobile-only" onClick={onToggleSidebar} aria-label="打开玩家和聊天"><Menu size={21} /></button>
@@ -2416,7 +2474,60 @@ function RoomSidebar({ room, act, open, onClose, onRequestSettlement }) {
   );
 }
 
-function RoomScreen({ room, user, socket, onRoom, onLeave, showError, entryMode, onOpenPreferences, onOpenProfile, onOpenSkillLibrary }) {
+function useRoomVoiceAnnouncements(room, enabled) {
+  const stateRef = useRef({
+    initialized: false,
+    roomCode: null,
+    handId: null,
+    newestActionKey: "",
+  });
+
+  useEffect(() => {
+    if (!enabled) cancelVoiceAnnouncements();
+  }, [enabled]);
+
+  useEffect(() => () => cancelVoiceAnnouncements(), []);
+
+  useEffect(() => {
+    const game = room?.game ?? null;
+    const actionLog = Array.isArray(game?.actionLog) ? game.actionLog : [];
+    const nextState = {
+      initialized: true,
+      roomCode: room?.code ?? null,
+      handId: game?.handId ?? null,
+      newestActionKey: actionLog[0] ? actionLogEntryKey(actionLog[0]) : "",
+    };
+    const previous = stateRef.current;
+
+    if (!previous.initialized || previous.roomCode !== nextState.roomCode) {
+      stateRef.current = nextState;
+      return;
+    }
+
+    const announcements = [];
+    const handStarted = Boolean(nextState.handId && nextState.handId !== previous.handId);
+    if (handStarted) {
+      announcements.push(...actionLog.slice().reverse().map(actionVoiceAnnouncement).filter(Boolean));
+    } else if (nextState.handId && actionLog.length > 0) {
+      const previousIndex = previous.newestActionKey
+        ? actionLog.findIndex((entry) => actionLogEntryKey(entry) === previous.newestActionKey)
+        : actionLog.length;
+      if (previousIndex > 0) {
+        announcements.push(...actionLog.slice(0, previousIndex).reverse().map(actionVoiceAnnouncement).filter(Boolean));
+      }
+    }
+
+    stateRef.current = nextState;
+
+    const isClassicRoom = room.mode !== ROOM_MODES.HEXTECH_CHAOS;
+    if (!enabled || !isClassicRoom || announcements.length === 0) return;
+    announcements.forEach((announcement, index) => {
+      speakVoiceAnnouncement(announcement, { interrupt: index === 0 });
+    });
+  }, [enabled, room]);
+}
+
+function RoomScreen({ room, user, socket, onRoom, onLeave, showError, entryMode, onOpenPreferences, onOpenProfile, onOpenSkillLibrary, voiceAnnouncements, onToggleVoiceAnnouncements }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [waitingSpectatorView, setWaitingSpectatorView] = useState(entryMode === "seat-select" ? "seat-select" : "spectator");
   const [settlementConfirmOpen, setSettlementConfirmOpen] = useState(false);
@@ -2425,6 +2536,8 @@ function RoomScreen({ room, user, socket, onRoom, onLeave, showError, entryMode,
   const canOpenSkillLibrary = isHextech
     && (!room.game || room.game.stage === "finished")
     && room.hextech?.phase !== "skill-draft";
+
+  useRoomVoiceAnnouncements(room, voiceAnnouncements);
 
   useEffect(() => {
     setWaitingSpectatorView(entryMode === "seat-select" ? "seat-select" : "spectator");
@@ -2493,7 +2606,7 @@ function RoomScreen({ room, user, socket, onRoom, onLeave, showError, entryMode,
 
   return (
     <main className="room-shell">
-      <RoomHeader room={room} user={user} onLeave={leave} onCopy={copyCode} onToggleSidebar={() => setSidebarOpen(true)} onOpenPreferences={onOpenPreferences} onOpenProfile={onOpenProfile} onOpenSkillLibrary={canOpenSkillLibrary ? onOpenSkillLibrary : null} />
+      <RoomHeader room={room} user={user} onLeave={leave} onCopy={copyCode} onToggleSidebar={() => setSidebarOpen(true)} onOpenPreferences={onOpenPreferences} onOpenProfile={onOpenProfile} onOpenSkillLibrary={canOpenSkillLibrary ? onOpenSkillLibrary : null} voiceAnnouncements={voiceAnnouncements} onToggleVoiceAnnouncements={onToggleVoiceAnnouncements} />
       <div className={`room-body ${(queuedFirstSeat || choosingSeat || (!room.game && room.self.role === "spectator")) && room.settlement.status !== "closed" ? "entry-mode" : ""} ${room.settlement.status === "closed" ? "settlement-closed" : ""}`}>
         {roomContent}
         <RoomSidebar room={room} act={act} open={sidebarOpen} onClose={() => setSidebarOpen(false)} onRequestSettlement={() => setSettlementConfirmOpen(true)} />
@@ -2537,6 +2650,13 @@ export default function App() {
   const updateDisplayPreferences = useCallback((nextPreferences) => {
     setDisplayPreferences((current) => normalizeDisplayPreferences({ ...current, ...nextPreferences }));
   }, []);
+
+  const toggleVoiceAnnouncements = useCallback(() => {
+    const enabled = !displayPreferences.voiceAnnouncements;
+    if (enabled) speakVoiceAnnouncement("普通牌局行动播报已开启", { interrupt: true });
+    else cancelVoiceAnnouncements();
+    setDisplayPreferences((current) => normalizeDisplayPreferences({ ...current, voiceAnnouncements: enabled }));
+  }, [displayPreferences.voiceAnnouncements]);
 
   const showError = useCallback((message) => {
     setNotice(message);
@@ -2599,6 +2719,7 @@ export default function App() {
       preferences={displayPreferences}
       onChange={updateDisplayPreferences}
       onClose={() => setPreferencesOpen(false)}
+      onToggleVoiceAnnouncements={toggleVoiceAnnouncements}
     />
   );
 
@@ -2619,7 +2740,7 @@ export default function App() {
   return (
     <>
       {room
-        ? <RoomScreen room={room} user={user} socket={socketRef.current} onRoom={setRoom} onLeave={() => { setRoom(null); setRoomEntryMode("resume"); }} showError={showError} entryMode={roomEntryMode} onOpenPreferences={() => setPreferencesOpen(true)} onOpenProfile={() => setProfileOpen(true)} onOpenSkillLibrary={() => setSkillLibraryOpen(true)} />
+        ? <RoomScreen room={room} user={user} socket={socketRef.current} onRoom={setRoom} onLeave={() => { setRoom(null); setRoomEntryMode("resume"); }} showError={showError} entryMode={roomEntryMode} onOpenPreferences={() => setPreferencesOpen(true)} onOpenProfile={() => setProfileOpen(true)} onOpenSkillLibrary={() => setSkillLibraryOpen(true)} voiceAnnouncements={displayPreferences.voiceAnnouncements} onToggleVoiceAnnouncements={toggleVoiceAnnouncements} />
         : <Lobby user={user} socket={socketRef.current} onLogout={logout} onRoom={enterRoom} showError={showError} onOpenPreferences={() => setPreferencesOpen(true)} onOpenProfile={() => setProfileOpen(true)} onOpenSkillLibrary={() => setSkillLibraryOpen(true)} />}
       <ErrorNotice message={notice} onClose={() => setNotice("")} />
       {preferencesPanel}
