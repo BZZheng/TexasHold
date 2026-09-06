@@ -117,11 +117,11 @@ APP_IMAGE="friends-holdem:production" \
 install -d -m 755 "$remote_root/bin"
 install -m 755 "$release_dir/deploy/backup/export-data.sh" "$remote_root/bin/texas-holdem-backup-export"
 # Existing restricted SSH keys may still point at the conventional system
-# location from an earlier deployment. Refresh that already-provisioned path
-# as well so the external puller and the application heartbeat stay on the
-# same protocol, without creating or changing privileged SSH configuration.
-if [ -x /usr/local/sbin/texas-holdem-backup-export ]; then
-  install -m 755 "$release_dir/deploy/backup/export-data.sh" /usr/local/sbin/texas-holdem-backup-export
+# location from an earlier deployment. Keep that path linked to the stable
+# install under the configured remote root so the exporter derives the same
+# data directory as the application, even when the root is not /srv.
+if [ -e /usr/local/sbin/texas-holdem-backup-export ] || [ -L /usr/local/sbin/texas-holdem-backup-export ]; then
+  ln -sfn "$remote_root/bin/texas-holdem-backup-export" /usr/local/sbin/texas-holdem-backup-export
 fi
 ln -sfn "$release_dir" "$remote_root/current"
 REMOTE_SCRIPT

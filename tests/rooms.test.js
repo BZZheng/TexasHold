@@ -77,6 +77,39 @@ test("a waiting room with no active game survives a runtime restart", () => {
   }
 });
 
+test("a room with at most one human player is dissolved after two hours", () => {
+  const socketEvents = [];
+  const io = {
+    emit() {},
+    to(socketId) {
+      return { emit(event, payload) { socketEvents.push({ socketId, event, payload }); } };
+    },
+  };
+  const store = { addHistory() {} };
+  const host = {
+    id: "socket-expiring-host",
+    data: { user: { id: "expiring-host", username: "超时房主" } },
+    join() {}, leave() {}, on() {},
+  };
+  const manager = new RoomManager(io, store, { singlePlayerRoomTtlMs: 2 * 60 * 60 * 1000 });
+  const created = manager.createRoom(host, {
+    name: "单人超时测试",
+    settings: { maxPlayers: 8, initialChips: 2000, smallBlind: 5, bigBlind: 10 },
+  });
+  manager.addBot(host);
+  const room = manager.rooms.get(created.room.code);
+  const now = Date.now();
+  room.singlePlayerSince = new Date(now - (2 * 60 * 60 * 1000)).toISOString();
+
+  assert.deepEqual(manager.sweepExpiredRooms(now), [room.code]);
+  assert.equal(manager.rooms.has(room.code), false);
+  assert.equal(manager.userRooms.has(host.data.user.id), false);
+  assert.ok(socketEvents.some(({ event, payload }) => (
+    event === "room:expired" && payload.roomCode === room.code
+  )));
+  manager.shutdown();
+});
+
 test("room chip settings reject values outside the approved five-point unit", () => {
   const io = { emit() {}, to() { return { emit() {} }; } };
   const store = { addHistory() {} };
@@ -323,30 +356,35 @@ test("folded players can switch spectator perspectives while retaining their own
   const io = { emit() {}, to() { return { emit() {} }; } };
   const store = { addHistory() {} };
   const host = { id: "socket-fold-watch-host", data: { user: { id: "fold-watch-host", username: "弃牌房主" } }, join() {}, leave() {}, on() {} };
+  const guest = { id: "socket-fold-watch-guest", data: { user: { id: "fold-watch-guest", username: "隐藏手牌玩家" } }, join() {}, leave() {}, on() {} };
   const manager = new RoomManager(io, store);
   const created = manager.createRoom(host, {
     name: "弃牌观战测试",
     settings: { maxPlayers: 8, initialChips: 2000, smallBlind: 5, bigBlind: 10 },
   });
-  manager.addBot(host);
+  manager.joinRoom(guest, { code: created.room.code });
+  manager.requestSeat(guest, { seat: 1 });
+  manager.approveSeat(host, { userId: guest.data.user.id });
   manager.addBot(host);
   manager.setReady(host, { ready: true });
+  manager.setReady(guest, { ready: true });
   manager.startGame(host);
 
   const room = manager.rooms.get(created.room.code);
+  const bot = room.game.players.find((player) => player.isBot);
+  room.game.spectatorMysteryUserId = bot.userId;
   const selfPlayer = room.game.players.find((player) => player.userId === host.data.user.id);
   const ownCards = [...selfPlayer.hand];
   selfPlayer.folded = true;
-  const target = room.game.players.find((player) => (
-    player.userId !== host.data.user.id
-    && player.userId !== room.game.spectatorMysteryUserId
-  ));
+  const target = room.game.players.find((player) => player.userId === guest.data.user.id);
+  manager.setSpectatorVisibility(guest, { hidden: true, handId: room.game.handId });
   const watched = manager.watchPlayer(host, { userId: target.userId }).room;
 
   assert.equal(room.members.get(host.data.user.id).spectatorFocusUserId, target.userId);
   assert.equal(watched.game.spectatorView.focusUserId, target.userId);
   assert.deepEqual(watched.game.players.find((player) => player.userId === host.data.user.id).cards, ownCards);
   assert.equal(watched.game.players.find((player) => player.userId === target.userId).cards.length, 2);
+  assert.equal(watched.game.players.find((player) => player.userId === target.userId).spectatorAccessGranted, true);
   assert.equal(watched.game.legal, null);
   manager.shutdown();
 });
@@ -634,6 +672,7 @@ test("the system caps table chips after a hand and produces a balanced final set
   assert.equal(result.settlement.accounts.reduce((total, account) => total + account.settlementPoints, 0), 0);
   assert.equal(result.settlement.totals.systemBalance, 0);
   assert.ok([...room.members.values()].every((member) => member.stack === 0 && member.pendingRebuy === 0));
+  assert.equal(manager.listRooms().some(({ code }) => code === room.code), false);
   assert.throws(() => manager.startGame(host), /已经完成终局结算/);
   manager.shutdown();
 });

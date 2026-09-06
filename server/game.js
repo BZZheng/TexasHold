@@ -1963,6 +1963,8 @@ export class HoldemGame {
 
   viewFor(userId, spectatorAccess = false) {
     const isSpectator = spectatorAccess === true || spectatorAccess?.isSpectator === true;
+    const bypassSpectatorPrivacy = typeof spectatorAccess === "object"
+      && spectatorAccess.bypassPlayerPrivacy === true;
     const spectatorAuthorizedUserIds = new Set(
       typeof spectatorAccess === "object" && Array.isArray(spectatorAccess.authorizedUserIds)
         ? spectatorAccess.authorizedUserIds.filter((candidate) => typeof candidate === "string")
@@ -1972,6 +1974,7 @@ export class HoldemGame {
     const spectatorCanSee = (player) => (
       player.userId !== this.spectatorMysteryUserId
       && (showdownIsPublic
+        || bypassSpectatorPrivacy
         || !player.spectatorHidden
         || spectatorAuthorizedUserIds.has(player.userId))
     );
@@ -2069,7 +2072,8 @@ export class HoldemGame {
           allIn: player.allIn,
           acted: player.acted,
           spectatorHidden: player.spectatorHidden,
-          spectatorAccessGranted: isSpectator && spectatorAuthorizedUserIds.has(player.userId),
+          spectatorAccessGranted: isSpectator
+            && (bypassSpectatorPrivacy || spectatorAuthorizedUserIds.has(player.userId)),
           cards: reveal ? [...player.hand] : [],
           cardCount: player.hand.length,
         };

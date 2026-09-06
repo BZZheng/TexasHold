@@ -109,6 +109,10 @@ test("spectator controls expose a compact player switcher and a dedicated watche
   assert.match(appSource, /本手已看过 · 权限保留/);
   assert.match(appSource, /self\.spectatorHidden \? "阻止新观战" : "观战可见"/);
   assert.match(appSource, /已经看过的人仍可继续查看/);
+  assert.match(appSource, /选择座位并申请入座/);
+  assert.match(appSource, /queuedFirstSeat && !activeGame/);
+  assert.match(appSource, /waitingSpectatorView === "seat-select"/);
+  assert.match(appSource, /socket\.on\("room:expired"/);
   assert.match(styles, /\.player-seat\.spectator-private \.seat-card/);
   assert.match(styles, /\.spectator-view-switcher\s*\{[^}]*display:\s*flex;[^}]*overflow-x:\s*auto;/s);
   assert.match(styles, /\.player-seat\.spectator-focused \.seat-card\s*\{[^}]*border-color:\s*var\(--color-gold-strong\)/s);

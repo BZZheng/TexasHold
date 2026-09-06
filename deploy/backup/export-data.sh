@@ -1,7 +1,17 @@
 #!/bin/sh
 set -eu
 
-DATA_ROOT="${TEXAS_HOLDEM_DATA_ROOT:-/srv/texas-holdem/data}"
+SCRIPT_FILE="$0"
+if [ -L "$SCRIPT_FILE" ]; then
+  linked_file="$(readlink "$SCRIPT_FILE")"
+  case "$linked_file" in
+    /*) SCRIPT_FILE="$linked_file" ;;
+    *) SCRIPT_FILE="$(dirname -- "$SCRIPT_FILE")/$linked_file" ;;
+  esac
+fi
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$SCRIPT_FILE")" && pwd)"
+DEFAULT_DATA_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)/data"
+DATA_ROOT="${TEXAS_HOLDEM_DATA_ROOT:-$DEFAULT_DATA_ROOT}"
 ACCOUNT_FILE="${TEXAS_HOLDEM_ACCOUNT_FILE:-$DATA_ROOT/hot/texashold.json}"
 RUNTIME_FILE="${TEXAS_HOLDEM_RUNTIME_FILE:-$DATA_ROOT/hot/runtime-rooms.json}"
 ARCHIVE_FILE="${TEXAS_HOLDEM_ARCHIVE_FILE:-$DATA_ROOT/archive-ring/history-events.json}"

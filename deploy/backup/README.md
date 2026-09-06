@@ -41,6 +41,8 @@ TEXAS_HOLDEM_ARCHIVE_ENV_FILE=deploy/backup/archive.env \
 
 应用日志使用本地有界归档环；外部归档不可用不会影响牌局。详细字段、容量和排障方式见 [`docs/observability.md`](../../docs/observability.md)。
 
+受限 SSH 的固定命令应指向 `$TEXAS_HOLDEM_SERVER_ROOT/bin/texas-holdem-backup-export`，或让 `/usr/local/sbin/texas-holdem-backup-export` 链接到该文件。导出器会由安装位置推导数据目录；如果复制到其他位置，则必须在固定命令中显式设置 `TEXAS_HOLDEM_DATA_ROOT`，避免应用迁移目录后继续读取旧路径。
+
 SQLite 采用幂等写入，重复拉取同一 `hand_id` 不会产生重复行。基础表为：
 
 - `hands`：房间、手数、盲注、公共牌、结算原因和赢家；

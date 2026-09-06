@@ -1322,6 +1322,12 @@ function SeatSelection({ room, act, onContinue }) {
     if (selectedSeat == null || occupiedSeats.has(selectedSeat)) setSelectedSeat(firstAvailableSeat);
   }, [firstAvailableSeat, occupiedSeats, selectedSeat]);
 
+  async function requestSelectedSeat() {
+    if (selectedSeat == null) return;
+    const result = await act("room:request-seat", { seat: selectedSeat });
+    if (result) onContinue();
+  }
+
   return (
     <section className="entry-flow seat-selection-flow">
       <header className="entry-flow-heading">
@@ -1336,14 +1342,14 @@ function SeatSelection({ room, act, onContinue }) {
         </div>
       </TableSurface>
       <div className="entry-flow-actions">
-        <button className="button primary" disabled={selectedSeat == null} onClick={() => act("room:request-seat", { seat: selectedSeat })}><UserPlus size={18} /> 申请入座</button>
+        <button className="button primary" disabled={selectedSeat == null} onClick={requestSelectedSeat}><UserPlus size={18} /> 申请入座</button>
         <button className="button secondary" onClick={onContinue}><Eye size={18} /> 继续观战</button>
       </div>
     </section>
   );
 }
 
-function SpectatorWaiting({ room, act, onLeave }) {
+function SpectatorWaiting({ room, onChooseSeat, onLeave }) {
   const spectators = room.members.filter((member) => member.role === "spectator");
   const hasOpenSeat = room.members.filter((member) => member.role === "player").length < room.settings.maxPlayers;
   return (
@@ -1365,7 +1371,7 @@ function SpectatorWaiting({ room, act, onLeave }) {
         <div><strong>{hasOpenSeat ? "可申请下一局入座" : "玩家席当前已满"}</strong><p>开局后可以切换玩家视角查看手牌；每局会随机保留一位神秘玩家。</p></div>
       </div>
       <div className="entry-flow-actions">
-        <button className="button primary" disabled={!hasOpenSeat || room.self.seatRequest} onClick={() => act("room:request-seat")}><UserPlus size={18} /> 申请下一局入座</button>
+        <button className="button primary" disabled={!hasOpenSeat || room.self.seatRequest} onClick={onChooseSeat}><UserPlus size={18} /> 选择座位并申请入座</button>
         <button className="button secondary" onClick={onLeave}>返回大厅</button>
       </div>
     </section>
@@ -2052,7 +2058,7 @@ function HextechDraftScreen({ room, act }) {
   );
 }
 
-function GameTable({ room, act, onLeave }) {
+function GameTable({ room, act, onLeave, onChooseSeat }) {
   const game = room.game;
   const isHextech = room.mode === ROOM_MODES.HEXTECH_CHAOS;
   const selfGamePlayer = game.players.find((player) => player.userId === room.self.userId);
@@ -2102,7 +2108,7 @@ function GameTable({ room, act, onLeave }) {
       setEndPhase("rebuy");
       return;
     }
-    act("room:request-seat");
+    onChooseSeat();
   }
 
   const dealingHoleCards = game.stage === "preflop" && Boolean(dealingLabel);
@@ -2571,6 +2577,7 @@ function RoomScreen({ room, user, socket, onRoom, onLeave, showError, entryMode,
   }
 
   const queuedFirstSeat = room.self.role === "spectator" && room.self.seatRequest && room.self.pendingRebuy === 0;
+  const activeGame = Boolean(room.game && room.game.stage !== "finished");
   const joinedAfterHand = room.game?.stage === "finished"
     && room.self.role === "player"
     && !room.game.players.some((player) => player.userId === room.self.userId);
@@ -2579,14 +2586,13 @@ function RoomScreen({ room, user, socket, onRoom, onLeave, showError, entryMode,
     && room.self.stack === 0
     && room.self.pendingRebuy > 0;
   const choosingSeat = room.self.role === "spectator"
-    && waitingSpectatorView === "seat-select"
-    && (!room.game || room.game.stage === "finished");
+    && waitingSpectatorView === "seat-select";
   let roomContent;
   if (room.settlement.status === "closed") {
     roomContent = <FinalSettlementScreen room={room} onLeave={leave} />;
   } else if (isHextech && room.hextech?.matchEnd) {
     roomContent = <HextechMatchEnd room={room} onLeave={leave} />;
-  } else if (queuedFirstSeat) {
+  } else if (queuedFirstSeat && !activeGame) {
     roomContent = <SeatRequestConfirmation room={room} />;
   } else if (rejoiningAfterBust) {
     roomContent = <RejoinWaiting room={room} act={act} />;
@@ -2597,9 +2603,9 @@ function RoomScreen({ room, user, socket, onRoom, onLeave, showError, entryMode,
   } else if (isHextech && room.hextech?.phase === "skill-draft" && room.self.role === "player") {
     roomContent = <HextechDraftScreen room={room} act={act} />;
   } else if (room.game) {
-    roomContent = <GameTable room={room} act={act} onLeave={leave} />;
+    roomContent = <GameTable room={room} act={act} onLeave={leave} onChooseSeat={() => setWaitingSpectatorView("seat-select")} />;
   } else if (room.self.role === "spectator") {
-    roomContent = <SpectatorWaiting room={room} act={act} onLeave={leave} />;
+    roomContent = <SpectatorWaiting room={room} onChooseSeat={() => setWaitingSpectatorView("seat-select")} onLeave={leave} />;
   } else {
     roomContent = <WaitingRoom room={room} act={act} />;
   }
@@ -2607,7 +2613,7 @@ function RoomScreen({ room, user, socket, onRoom, onLeave, showError, entryMode,
   return (
     <main className="room-shell">
       <RoomHeader room={room} user={user} onLeave={leave} onCopy={copyCode} onToggleSidebar={() => setSidebarOpen(true)} onOpenPreferences={onOpenPreferences} onOpenProfile={onOpenProfile} onOpenSkillLibrary={canOpenSkillLibrary ? onOpenSkillLibrary : null} voiceAnnouncements={voiceAnnouncements} onToggleVoiceAnnouncements={onToggleVoiceAnnouncements} />
-      <div className={`room-body ${(queuedFirstSeat || choosingSeat || (!room.game && room.self.role === "spectator")) && room.settlement.status !== "closed" ? "entry-mode" : ""} ${room.settlement.status === "closed" ? "settlement-closed" : ""}`}>
+      <div className={`room-body ${(((queuedFirstSeat && !activeGame) || choosingSeat || (!room.game && room.self.role === "spectator")) && room.settlement.status !== "closed") ? "entry-mode" : ""} ${room.settlement.status === "closed" ? "settlement-closed" : ""}`}>
         {roomContent}
         <RoomSidebar room={room} act={act} open={sidebarOpen} onClose={() => setSidebarOpen(false)} onRequestSettlement={() => setSettlementConfirmOpen(true)} />
       </div>
@@ -2672,6 +2678,11 @@ export default function App() {
       setRoom(null);
       setRoomEntryMode("resume");
       showError(typeof payload?.message === "string" ? payload.message : "你已被房主移出房间");
+    });
+    socket.on("room:expired", (payload) => {
+      setRoom(null);
+      setRoomEntryMode("resume");
+      showError(typeof payload?.message === "string" ? payload.message : "房间已自动解散");
     });
     socket.on("room:ready-reminder", (payload) => {
       showError(typeof payload?.message === "string" ? payload.message : "房主正在等待你准备，请点击“准备”");

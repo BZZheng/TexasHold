@@ -24,7 +24,7 @@ test("deployment scripts are valid shell and publish only the reviewed commit", 
   assert.match(deployment, /docker load/);
   assert.match(
     deployment,
-    /if \[ -x \/usr\/local\/sbin\/texas-holdem-backup-export \]; then[\s\S]*install -m 755[\s\S]*\/usr\/local\/sbin\/texas-holdem-backup-export/,
+    /if \[ -e \/usr\/local\/sbin\/texas-holdem-backup-export \] \|\| \[ -L \/usr\/local\/sbin\/texas-holdem-backup-export \]; then[\s\S]*ln -sfn "\$remote_root\/bin\/texas-holdem-backup-export" \/usr\/local\/sbin\/texas-holdem-backup-export/,
     "deployments must refresh an already-provisioned restricted SSH exporter path",
   );
 });

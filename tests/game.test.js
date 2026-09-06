@@ -276,6 +276,35 @@ test("a player can hide their hand from spectators and restore visibility", () =
   );
 });
 
+test("a folded participant bypasses player privacy while an external spectator stays blocked", () => {
+  const game = new HoldemGame({
+    players: [
+      { userId: "a", username: "玩家 A", seat: 0, stack: 2000 },
+      { userId: "b", username: "玩家 B", seat: 1, stack: 2000 },
+      { userId: "c", username: "玩家 C", seat: 2, stack: 2000 },
+    ],
+    settings,
+  });
+  const target = game.players.find((player) => player.userId !== game.spectatorMysteryUserId && player.userId !== "a");
+  game.setSpectatorVisibility({ userId: target.userId, hidden: true, handId: game.handId });
+
+  const externalView = game.viewFor("observer", {
+    isSpectator: true,
+    focusUserId: target.userId,
+  });
+  const foldedParticipantView = game.viewFor("a", {
+    isSpectator: true,
+    focusUserId: target.userId,
+    bypassPlayerPrivacy: true,
+  });
+
+  assert.notEqual(externalView.spectatorView.focusUserId, target.userId);
+  assert.equal(externalView.players.find((player) => player.userId === target.userId).cards.length, 0);
+  assert.equal(foldedParticipantView.spectatorView.focusUserId, target.userId);
+  assert.equal(foldedParticipantView.players.find((player) => player.userId === target.userId).cards.length, 2);
+  assert.equal(foldedParticipantView.players.find((player) => player.userId === target.userId).spectatorAccessGranted, true);
+});
+
 test("an authorized spectator keeps same-hand access after the player hides", () => {
   const game = twoPlayerGame();
   const target = game.players.find((player) => player.userId !== game.spectatorMysteryUserId);

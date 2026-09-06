@@ -47,6 +47,7 @@ const RUNTIME_STATE_VERSION = 3;
 const SUPPORTED_RUNTIME_STATE_VERSIONS = new Set([1, 2, RUNTIME_STATE_VERSION]);
 const HEXTECH_CHARACTER_OPPORTUNITY_MS = 60_000;
 const MAX_RESTORED_HEXTECH_TIMER_MS = 60_000;
+const SINGLE_PLAYER_ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 
 function spectatorCardAccessUserIds(member, handId) {
   if (!member || typeof handId !== "string" || member.spectatorCardAccess?.handId !== handId) return [];
@@ -532,6 +533,7 @@ export class RoomManager {
         ? path.join(store.dataDir, "runtime-rooms.json")
         : null,
     reconnectGraceMs = RESTART_RECONNECT_GRACE_MS,
+    singlePlayerRoomTtlMs = SINGLE_PLAYER_ROOM_TTL_MS,
   } = {}) {
     this.io = io;
     this.store = store;
@@ -539,6 +541,7 @@ export class RoomManager {
     this.logger = logger;
     this.runtimeFile = runtimeFile;
     this.reconnectGraceMs = reconnectGraceMs;
+    this.singlePlayerRoomTtlMs = singlePlayerRoomTtlMs;
     this.persistenceHealthy = true;
     this.lastCheckpointAt = null;
     this.rooms = new Map();
@@ -752,7 +755,16 @@ export class RoomManager {
           : [],
         botTimer: null,
         createdAt: typeof savedRoom.createdAt === "string" ? savedRoom.createdAt : new Date(now).toISOString(),
+        singlePlayerSince: typeof savedRoom.singlePlayerSince === "string"
+          && Number.isFinite(Date.parse(savedRoom.singlePlayerSince))
+          ? savedRoom.singlePlayerSince
+          : null,
       };
+      const restoredHumanPlayerCount = [...members.values()]
+        .filter((member) => !member.isBot && member.role === "player").length;
+      if (restoredHumanPlayerCount <= 1 && !room.singlePlayerSince) {
+        room.singlePlayerSince = room.createdAt;
+      }
       if (room.hextech && room.handNumber > 0 && room.hextech.participantUserIds.length === 0) {
         room.hextech.participantUserIds = [...room.members.values()]
           .filter((member) => member.role === "player" && member.characterId)
@@ -864,6 +876,7 @@ export class RoomManager {
         lastHandCashOuts: room.lastHandCashOuts.map((entry) => ({ ...entry })),
         chat: room.chat.map((entry) => ({ ...entry })),
         createdAt: room.createdAt,
+        singlePlayerSince: room.singlePlayerSince,
       })),
     };
     const tempFile = `${this.runtimeFile}.${process.pid}.tmp`;
@@ -1031,26 +1044,26 @@ export class RoomManager {
   }
 
   listRooms() {
-    return [...this.rooms.values()].map((room) => {
-      const playerCount = [...room.members.values()].filter((member) => member.role === "player").length;
-      const previewPlayerCount = Math.max(HEXTECH_MODE.minPlayers, playerCount);
-      return {
-        code: room.code,
-        name: room.name,
-        mode: room.mode,
-        playerCount,
-        spectatorCount: [...room.members.values()].filter((member) => member.role === "spectator").length,
-        maxPlayers: room.settings.maxPlayers,
-        smallBlind: room.settings.smallBlind,
-        bigBlind: room.settings.bigBlind,
-        targetChips: room.hextech?.targetChips
-          ?? (isHextechMode(room.mode) ? hextechTargetForPlayers(previewPlayerCount) : null),
-        hasPassword: Boolean(room.settings.password),
-        status: room.settlement.status === "closed"
-          ? "已结算"
-          : room.game && room.game.stage !== "finished" ? "游戏中" : "等待中",
-      };
-    });
+    return [...this.rooms.values()]
+      .filter((room) => room.settlement.status !== "closed")
+      .map((room) => {
+        const playerCount = [...room.members.values()].filter((member) => member.role === "player").length;
+        const previewPlayerCount = Math.max(HEXTECH_MODE.minPlayers, playerCount);
+        return {
+          code: room.code,
+          name: room.name,
+          mode: room.mode,
+          playerCount,
+          spectatorCount: [...room.members.values()].filter((member) => member.role === "spectator").length,
+          maxPlayers: room.settings.maxPlayers,
+          smallBlind: room.settings.smallBlind,
+          bigBlind: room.settings.bigBlind,
+          targetChips: room.hextech?.targetChips
+            ?? (isHextechMode(room.mode) ? hextechTargetForPlayers(previewPlayerCount) : null),
+          hasPassword: Boolean(room.settings.password),
+          status: room.game && room.game.stage !== "finished" ? "游戏中" : "等待中",
+        };
+      });
   }
 
   listLeaderboard() {
@@ -1284,6 +1297,7 @@ export class RoomManager {
     while (this.rooms.has(code)) code = roomCode();
     const mode = normalizeRoomMode(payload.mode);
     const settings = normalizeSettings(payload.settings, mode);
+    const createdAt = new Date().toISOString();
     const room = {
       code,
       name: String(payload.name ?? "好友牌局").trim().slice(0, 24) || "好友牌局",
@@ -1300,7 +1314,8 @@ export class RoomManager {
       lastHandCashOuts: [],
       chat: [],
       botTimer: null,
-      createdAt: new Date().toISOString(),
+      createdAt,
+      singlePlayerSince: createdAt,
     };
     const member = this.#newMember(socket.data.user, "player", 0, settings.initialChips);
     member.everSeated = true;
@@ -3129,7 +3144,9 @@ export class RoomManager {
     if (target.userId === room.game.spectatorMysteryUserId) {
       throw new SecurityError("本局神秘玩家的手牌不可观看", "mystery_hand_watch");
     }
-    if (target.spectatorHidden
+    const isFoldedParticipant = member?.role === "player" && selfGamePlayer?.folded;
+    if (!isFoldedParticipant
+      && target.spectatorHidden
       && !hasSpectatorCardAccess(member, room.game.handId, target.userId)) {
       throw new SecurityError("该玩家已隐藏手牌，当前不可观看", "private_hand_watch");
     }
@@ -3607,7 +3624,68 @@ export class RoomManager {
     room.botTimer.unref();
   }
 
+  #refreshSinglePlayerTracking(room, now = Date.now()) {
+    const humanPlayerCount = [...room.members.values()]
+      .filter((member) => !member.isBot && member.role === "player").length;
+    if (humanPlayerCount > 1) room.singlePlayerSince = null;
+    else if (!Number.isFinite(Date.parse(room.singlePlayerSince ?? ""))) {
+      room.singlePlayerSince = new Date(now).toISOString();
+    }
+    return humanPlayerCount;
+  }
+
+  sweepExpiredRooms(now = Date.now()) {
+    const expiredRooms = [];
+    let trackingChanged = false;
+
+    for (const room of this.rooms.values()) {
+      const previousSinglePlayerSince = room.singlePlayerSince;
+      const humanPlayerCount = this.#refreshSinglePlayerTracking(room, now);
+      trackingChanged = room.singlePlayerSince !== previousSinglePlayerSince || trackingChanged;
+      if (humanPlayerCount > 1) {
+        continue;
+      }
+
+      const trackedAt = Date.parse(room.singlePlayerSince ?? "");
+      const activeHand = Boolean(room.game && room.game.stage !== "finished");
+      if (!activeHand && now - trackedAt >= this.singlePlayerRoomTtlMs) {
+        expiredRooms.push(room);
+      }
+    }
+
+    for (const room of expiredRooms) {
+      if (room.botTimer) clearTimeout(room.botTimer);
+      room.botTimer = null;
+      for (const member of humanMembers(room)) {
+        this.userRooms.delete(member.userId);
+        for (const socketId of member.socketIds) {
+          this.io.to(socketId).emit("room:expired", {
+            roomCode: room.code,
+            message: "房间连续两小时只有一位玩家，已自动解散",
+          });
+        }
+      }
+      this.rooms.delete(room.code);
+      this.audit("room_expired_single_player", {
+        roomCode: room.code,
+        singlePlayerSince: room.singlePlayerSince,
+      });
+      this.logger?.info?.("room", "room_expired_single_player", {
+        roomCode: room.code,
+        singlePlayerSince: room.singlePlayerSince,
+      });
+    }
+
+    if (trackingChanged || expiredRooms.length > 0) this.#persistRooms();
+    if (expiredRooms.length > 0) {
+      this.io.emit("lobby:update", this.listRooms());
+      this.emitLeaderboard();
+    }
+    return expiredRooms.map((room) => room.code);
+  }
+
   #tick() {
+    this.sweepExpiredRooms();
     for (const room of this.rooms.values()) {
       try {
       if (isHextechMode(room.mode) && !room.hextech?.matchEnd) {
@@ -3754,6 +3832,7 @@ export class RoomManager {
   }
 
   #emitRoom(room) {
+    this.#refreshSinglePlayerTracking(room);
     this.#persistRooms();
     for (const member of humanMembers(room)) {
       for (const socketId of member.socketIds) {
@@ -3776,6 +3855,7 @@ export class RoomManager {
       isSpectator: true,
       focusUserId: self.spectatorFocusUserId,
       strictFocus: isHextechMode(room.mode),
+      bypassPlayerPrivacy: self.role === "player" && selfGamePlayer?.folded === true,
       authorizedUserIds: spectatorCardAccessUserIds(self, room.game.handId),
     } : false;
     let rawGameView = room.game?.viewFor(userId, spectatorAccess) ?? null;
