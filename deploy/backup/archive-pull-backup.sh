@@ -61,6 +61,7 @@ cleanup() {
 trap cleanup EXIT
 
 ssh \
+  -C \
   -T \
   -i "$SSH_KEY" \
   -o BatchMode=yes \
